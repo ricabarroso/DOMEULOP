@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { createDocumentPdf } from "@/lib/create-document-pdf";
 
 export type DocumentType = "receita" | "atestado" | "exame" | "apac";
 type ApacProcedure = { codigo: string; nome: string; quantidade: string };
+type PrescriptionMedication = {
+  nome: string;
+  apresentacao: string;
+  posologia: string;
+  quantidade: string;
+};
 export type MedicalDocumentForm = {
   paciente: string;
   nascimento: string;
@@ -15,8 +21,8 @@ export type MedicalDocumentForm = {
   especialidade: string;
   procedimento: string;
   motivo: string;
-  medicamentos: string;
-  dosagem: string;
+  cidadeEstado: string;
+  medicamentos: PrescriptionMedication[];
   periodo: string;
   exames: string;
   observacoes: string;
@@ -71,6 +77,16 @@ const documentTitles: Record<DocumentType, string> = {
   apac: "APAC",
 };
 
+function getCurrentLocalDate() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+}
+
+function subscribeToLocalDate(onDateChange: () => void) {
+  const timeout = window.setTimeout(onDateChange, 0);
+  return () => window.clearTimeout(timeout);
+}
+
 const initialForm: MedicalDocumentForm = {
   paciente: "",
   nascimento: "",
@@ -79,8 +95,8 @@ const initialForm: MedicalDocumentForm = {
   especialidade: "",
   procedimento: "",
   motivo: "",
-  medicamentos: "",
-  dosagem: "",
+  cidadeEstado: "",
+  medicamentos: [{ nome: "", apresentacao: "", posologia: "", quantidade: "" }],
   periodo: "",
   exames: "",
   observacoes: "",
@@ -142,16 +158,22 @@ function isCnesLookup(value: unknown): value is CnesLookup {
 
 export default function DocumentEditor({ documentType }: { documentType: DocumentType }) {
   const [form, setForm] = useState<MedicalDocumentForm>(initialForm);
+  const currentDate = useSyncExternalStore(subscribeToLocalDate, getCurrentLocalDate, () => "");
   const [copied, setCopied] = useState(false);
   const [pdfError, setPdfError] = useState("");
   const [cnesStatus, setCnesStatus] = useState<"idle" | "loading" | "success" | "not-found" | "error">("idle");
   const [cnesMessage, setCnesMessage] = useState("");
   const [cnesResult, setCnesResult] = useState<CnesLookup | null>(null);
+  const [executorCnesStatus, setExecutorCnesStatus] = useState<"idle" | "loading" | "success" | "not-found" | "error">("idle");
+  const [executorCnesMessage, setExecutorCnesMessage] = useState("");
   const [professionalCnsStatus, setProfessionalCnsStatus] = useState<"idle" | "loading" | "success" | "not-found" | "error">("idle");
   const [professionalCnsMessage, setProfessionalCnsMessage] = useState("");
   const cnesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cnesController = useRef<AbortController | null>(null);
   const cnesRequestId = useRef(0);
+  const executorCnesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const executorCnesController = useRef<AbortController | null>(null);
+  const executorCnesRequestId = useRef(0);
   const professionalCnsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const professionalCnsController = useRef<AbortController | null>(null);
   const professionalCnsRequestId = useRef(0);
@@ -160,13 +182,16 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
     return () => {
       if (cnesTimer.current) clearTimeout(cnesTimer.current);
       cnesController.current?.abort();
+      if (executorCnesTimer.current) clearTimeout(executorCnesTimer.current);
+      executorCnesController.current?.abort();
       if (professionalCnsTimer.current) clearTimeout(professionalCnsTimer.current);
       professionalCnsController.current?.abort();
     };
   }, []);
 
   const preview = useMemo(() => {
-    const formattedDate = form.dataDocumento ? formatDate(form.dataDocumento) : "Data não informada";
+    const documentDate = form.dataDocumento || currentDate;
+    const formattedDate = documentDate ? formatDate(documentDate) : "Data não informada";
     const establishment = form.nomeEstabelecimento
       ? `\nEstabelecimento: ${form.nomeEstabelecimento}${form.enderecoEstabelecimento ? `\nEndereço: ${form.enderecoEstabelecimento}` : ""}\nCNES: ${form.cnes}`
       : form.cnes
@@ -175,15 +200,15 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
 
     switch (documentType) {
       case "receita":
-        return `RECEITA MÉDICA\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}\nEspecialidade: ${form.especialidade}${establishment}\n\nMedicamentos:\n${formatList(form.medicamentos)}\nDosagem e uso: ${form.dosagem}\n\nObservações: ${form.observacoes}\n\nCidade/estado: São Paulo/SP\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
+        return `RECEITA MÉDICA\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}\nEspecialidade: ${form.especialidade}${establishment}\n\nMEDICAMENTOS\n${form.medicamentos.map((medication, index) => `${index + 1}. ${medication.nome || "Medicamento não informado"}\n   Apresentação/concentração: ${medication.apresentacao}\n   Posologia e modo de usar: ${medication.posologia}\n   Quantidade a dispensar: ${medication.quantidade}`).join("\n\n")}\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
       case "atestado":
-        return `ATESTADO MÉDICO\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}\nEspecialidade: ${form.especialidade}${establishment}\n\nDeclaro, por meio deste, que o paciente acima foi avaliado e necessita de afastamento por ${form.periodo}, em razão de ${form.motivo}.\n\nObservações: ${form.observacoes}\n\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
+        return `ATESTADO MÉDICO\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}\nEspecialidade: ${form.especialidade}${establishment}\n\nDeclaro, por meio deste, que o paciente acima foi avaliado e necessita de afastamento por ${form.periodo}, em razão de ${form.motivo}.\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
       case "exame":
-        return `PEDIDO DE EXAME\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nSolicitante: ${form.profissional}\nCRM: ${form.crm}\nEspecialidade: ${form.especialidade}${establishment}\n\nMotivo da solicitação: ${form.motivo}\nExames solicitados:\n${formatList(form.exames)}\n\nObservações: ${form.observacoes}\n\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
+        return `PEDIDO DE EXAME\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nSolicitante: ${form.profissional}\nCRM: ${form.crm}\nEspecialidade: ${form.especialidade}${establishment}\n\nMotivo da solicitação: ${form.motivo}\nExames solicitados:\n${formatList(form.exames)}\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
       case "apac":
         return `LAUDO MÉDICO PARA PROCEDIMENTOS DE ALTA COMPLEXIDADE - APAC\n\nIDENTIFICAÇÃO DO ESTABELECIMENTO DE SAÚDE (SOLICITANTE)\n1. Nome: ${form.nomeEstabelecimento}\n2. CNES: ${form.cnes}\n\nIDENTIFICAÇÃO DO PACIENTE\n3. Nome: ${form.paciente}\n4. Nº prontuário: ${form.numeroProntuario}\n5. CNS: ${form.cns}\n6. Data de nascimento: ${form.nascimento ? formatDate(form.nascimento) : ""}\n7. Sexo: ${form.sexo}\n8. Nome da mãe: ${form.nomeMae}\n9. Telefone: ${form.telefone}\n10. Endereço: ${form.enderecoPaciente}\n11. Município: ${form.municipioResidencia}\n15. Código IBGE: ${form.codigoIbge}  16. UF: ${form.uf}  17. CEP: ${form.cep}\n\nPROCEDIMENTO SOLICITADO\n${form.procedimentos.map((item, index) => `${index + 1}. Código ${item.codigo} — ${item.nome} — Qtd. ${item.quantidade}`).join("\n")}\n\nJUSTIFICATIVA DO(S) PROCEDIMENTO(S) SOLICITADO(S)\n21. Diagnóstico: ${form.diagnostico}\n22. CID principal: ${form.cidPrincipal}  23. Secundário: ${form.cidSecundario}  24. Associados: ${form.cidAssociados}\n25. Resumo da anamnese e exame físico: ${form.anamnese}\n26. Exames complementares realizados: ${form.examesComplementares}\n27. Justificativa do procedimento: ${form.justificativaApac}\n\nSOLICITAÇÃO\n28. Profissional solicitante: ${form.profissional}\n29. Data: ${formattedDate}\nDocumento ${form.documentoSolicitanteTipo}: ${form.documentoSolicitanteNumero}\n\nAUTORIZAÇÃO\n31. Profissional autorizador: ${form.profissionalAutorizador}\n32. Código do órgão emissor: ${form.codigoOrgaoEmissor}\n33. Número da autorização APAC: ${form.numeroAutorizacao}\nDocumento ${form.documentoAutorizadorTipo}: ${form.documentoAutorizadorNumero}\n34. Data da autorização: ${form.dataAutorizacao ? formatDate(form.dataAutorizacao) : ""}\n36. Validade: ${form.validadeInicio ? formatMonth(form.validadeInicio) : ""} até ${form.validadeFim ? formatMonth(form.validadeFim) : ""}\n\nIDENTIFICAÇÃO DO ESTABELECIMENTO DE SAÚDE (EXECUTANTE)\n37. Nome: ${form.estabelecimentoExecutante}\n38. CNES: ${form.cnesExecutante}`;
     }
-  }, [documentType, form]);
+  }, [documentType, form, currentDate]);
 
   const handleCnesChange = (value: string) => {
     const codigo = value.replace(/\D/g, "").slice(0, 7);
@@ -236,15 +261,74 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
           ...prev,
           nomeEstabelecimento: data.nome,
           enderecoEstabelecimento: data.endereco,
-          estabelecimentoExecutante: prev.estabelecimentoExecutante || data.nome,
-          cnesExecutante: prev.cnesExecutante || data.codigo,
         }));
-        setCnesMessage("Estabelecimento localizado. Confira os dados antes de usar.");
+        setCnesMessage(
+          documentType === "apac"
+            ? "Estabelecimento solicitante localizado. Confira os dados antes de usar."
+            : "Estabelecimento localizado. Confira os dados antes de usar.",
+        );
         setCnesStatus("success");
       } catch (error) {
         if (controller.signal.aborted || requestId !== cnesRequestId.current) return;
         setCnesMessage(error instanceof Error ? error.message : "Falha ao consultar o CNES.");
         setCnesStatus("error");
+      }
+    }, 350);
+  };
+
+  const handleExecutorCnesChange = (value: string) => {
+    const codigo = value.replace(/\D/g, "").slice(0, 7);
+    setForm((prev) => ({
+      ...prev,
+      cnesExecutante: codigo,
+      estabelecimentoExecutante: "",
+    }));
+    setExecutorCnesMessage("");
+    executorCnesRequestId.current += 1;
+    const requestId = executorCnesRequestId.current;
+    if (executorCnesTimer.current) clearTimeout(executorCnesTimer.current);
+    executorCnesController.current?.abort();
+
+    if (codigo.length !== 7) {
+      setExecutorCnesStatus("idle");
+      return;
+    }
+
+    setExecutorCnesStatus("loading");
+    executorCnesTimer.current = setTimeout(async () => {
+      const controller = new AbortController();
+      executorCnesController.current = controller;
+      try {
+        const response = await fetch(`/api/cnes/${codigo}`, { signal: controller.signal });
+        const data: unknown = await response.json();
+        if (requestId !== executorCnesRequestId.current) return;
+        if (!response.ok) {
+          const message =
+            typeof data === "object" &&
+            data !== null &&
+            "error" in data &&
+            typeof data.error === "string"
+              ? data.error
+              : "Falha ao consultar o CNES do estabelecimento executante.";
+          setExecutorCnesMessage(message);
+          setExecutorCnesStatus(response.status === 404 ? "not-found" : "error");
+          return;
+        }
+        if (!isCnesLookup(data)) {
+          setExecutorCnesMessage("O serviço CNES retornou dados incompatíveis.");
+          setExecutorCnesStatus("error");
+          return;
+        }
+
+        setForm((prev) => ({ ...prev, estabelecimentoExecutante: data.nome }));
+        setExecutorCnesMessage("Estabelecimento executante localizado. Confira os dados antes de usar.");
+        setExecutorCnesStatus("success");
+      } catch (error) {
+        if (controller.signal.aborted || requestId !== executorCnesRequestId.current) return;
+        setExecutorCnesMessage(
+          error instanceof Error ? error.message : "Falha ao consultar o CNES do estabelecimento executante.",
+        );
+        setExecutorCnesStatus("error");
       }
     }, 350);
   };
@@ -323,7 +407,10 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
     previewWindow.document.title = `PDF - ${documentTitles[documentType]}`;
     previewWindow.document.body.textContent = "Preparando a visualização do documento…";
     try {
-      const blob = createDocumentPdf(documentType, form);
+      const blob = createDocumentPdf(documentType, {
+        ...form,
+        dataDocumento: form.dataDocumento || currentDate,
+      });
       const pdfUrl = URL.createObjectURL(blob);
       previewWindow.location.replace(pdfUrl);
       window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 5 * 60 * 1000);
@@ -359,7 +446,11 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                 <ApacFields
                   form={form}
                   setForm={setForm}
+                  currentDate={currentDate}
                   onCnesChange={handleCnesChange}
+                  onExecutorCnesChange={handleExecutorCnesChange}
+                  executorCnesStatus={executorCnesStatus}
+                  executorCnesMessage={executorCnesMessage}
                   onProfessionalCnsChange={handleProfessionalCnsChange}
                   professionalCnsStatus={professionalCnsStatus}
                   professionalCnsMessage={professionalCnsMessage}
@@ -373,7 +464,8 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                     <Field label="Profissional" value={form.profissional} onChange={(value) => setForm((prev) => ({ ...prev, profissional: value }))} />
                     <Field label="CRM" value={form.crm} onChange={(value) => setForm((prev) => ({ ...prev, crm: value }))} />
                     <Field label="Especialidade" value={form.especialidade} onChange={(value) => setForm((prev) => ({ ...prev, especialidade: value }))} />
-                    <Field label="Data do documento" type="date" value={form.dataDocumento} onChange={(value) => setForm((prev) => ({ ...prev, dataDocumento: value }))} />
+                    <Field label="Cidade/estado" value={form.cidadeEstado} onChange={(value) => setForm((prev) => ({ ...prev, cidadeEstado: value }))} />
+                    <Field label="Data do documento" type="date" value={form.dataDocumento || currentDate} onChange={(value) => setForm((prev) => ({ ...prev, dataDocumento: value }))} />
                     <Field label="CNES" value={form.cnes} onChange={handleCnesChange} />
                   </div>
                 </>
@@ -391,7 +483,11 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                   role="status"
                   aria-live="polite"
                 >
-                  {cnesStatus === "loading" ? "Consultando cadastro público CNES…" : cnesMessage}
+                  {cnesStatus === "loading"
+                    ? documentType === "apac"
+                      ? "Consultando cadastro público CNES do estabelecimento solicitante…"
+                      : "Consultando cadastro público CNES…"
+                    : cnesMessage}
                   {cnesResult?.atualizadoEm ? ` Dados atualizados em ${formatDate(cnesResult.atualizadoEm)}.` : ""}
                 </div>
               )}
@@ -409,10 +505,83 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
               {documentType !== "apac" && (
                 <div className="mt-5 space-y-4">
                   {documentType === "receita" && (
-                    <>
-                      <Field label="Medicamentos" value={form.medicamentos} onChange={(value) => setForm((prev) => ({ ...prev, medicamentos: value }))} multiline />
-                      <Field label="Dosagem e uso" value={form.dosagem} onChange={(value) => setForm((prev) => ({ ...prev, dosagem: value }))} multiline />
-                    </>
+                    <FormSection title="Medicamentos prescritos">
+                      <div className="space-y-4">
+                        {form.medicamentos.map((medication, index) => (
+                          <fieldset key={index} className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <legend className="font-semibold text-slate-800">Medicamento {index + 1}</legend>
+                              {form.medicamentos.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setForm((prev) => ({
+                                    ...prev,
+                                    medicamentos: prev.medicamentos.filter((_, itemIndex) => itemIndex !== index),
+                                  }))}
+                                  className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+                                  aria-label={`Remover medicamento ${index + 1}`}
+                                >
+                                  Remover
+                                </button>
+                              )}
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <Field
+                                label="Nome do medicamento"
+                                value={medication.nome}
+                                onChange={(value) => setForm((prev) => ({
+                                  ...prev,
+                                  medicamentos: prev.medicamentos.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, nome: value } : item,
+                                  ),
+                                }))}
+                              />
+                              <Field
+                                label="Apresentação / concentração (ex.: 500 mg)"
+                                value={medication.apresentacao}
+                                onChange={(value) => setForm((prev) => ({
+                                  ...prev,
+                                  medicamentos: prev.medicamentos.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, apresentacao: value } : item,
+                                  ),
+                                }))}
+                              />
+                              <Field
+                                label="Posologia e modo de usar"
+                                value={medication.posologia}
+                                onChange={(value) => setForm((prev) => ({
+                                  ...prev,
+                                  medicamentos: prev.medicamentos.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, posologia: value } : item,
+                                  ),
+                                }))}
+                                multiline
+                              />
+                              <Field
+                                label="Quantidade a dispensar (ex.: 1 caixa)"
+                                value={medication.quantidade}
+                                onChange={(value) => setForm((prev) => ({
+                                  ...prev,
+                                  medicamentos: prev.medicamentos.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, quantidade: value } : item,
+                                  ),
+                                }))}
+                              />
+                            </div>
+                          </fieldset>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({
+                            ...prev,
+                            medicamentos: [...prev.medicamentos, { nome: "", apresentacao: "", posologia: "", quantidade: "" }],
+                          }))}
+                          className="rounded-xl border border-sky-700 px-4 py-2 text-sm font-semibold text-sky-800 transition hover:bg-sky-50"
+                        >
+                          + Adicionar medicamento
+                        </button>
+                      </div>
+                    </FormSection>
                   )}
                   {documentType === "atestado" && (
                     <>
@@ -455,7 +624,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
             </div>
 
             {documentType === "apac" ? (
-              <ApacPreview form={form} />
+              <ApacPreview form={form} currentDate={currentDate} />
             ) : (
               <div className="document-content mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm leading-7 text-slate-800 md:p-8">
                 <pre className="whitespace-pre-wrap font-sans">{preview}</pre>
@@ -516,14 +685,22 @@ function Field({
 function ApacFields({
   form,
   setForm,
+  currentDate,
   onCnesChange,
+  onExecutorCnesChange,
+  executorCnesStatus,
+  executorCnesMessage,
   onProfessionalCnsChange,
   professionalCnsStatus,
   professionalCnsMessage,
 }: {
   form: MedicalDocumentForm;
   setForm: Dispatch<SetStateAction<MedicalDocumentForm>>;
+  currentDate: string;
   onCnesChange: (value: string) => void;
+  onExecutorCnesChange: (value: string) => void;
+  executorCnesStatus: "idle" | "loading" | "success" | "not-found" | "error";
+  executorCnesMessage: string;
   onProfessionalCnsChange: (value: string, shouldLookup: boolean) => void;
   professionalCnsStatus: "idle" | "loading" | "success" | "not-found" | "error";
   professionalCnsMessage: string;
@@ -603,7 +780,7 @@ function ApacFields({
       <FormSection title="Solicitação">
         <div className="grid gap-4 md:grid-cols-3">
           <div className="md:col-span-2"><Field label="28. Nome do profissional solicitante" value={form.profissional} onChange={(value) => update("profissional", value)} /></div>
-          <Field label="29. Data da solicitação" type="date" value={form.dataDocumento} onChange={(value) => update("dataDocumento", value)} />
+          <Field label="29. Data da solicitação" type="date" value={form.dataDocumento || currentDate} onChange={(value) => update("dataDocumento", value)} />
           <SelectField label="Documento do solicitante" value={form.documentoSolicitanteTipo} onChange={(value) => {
             update("documentoSolicitanteTipo", value);
             onProfessionalCnsChange(form.documentoSolicitanteNumero, value === "CNS");
@@ -645,8 +822,24 @@ function ApacFields({
       <FormSection title="Identificação do estabelecimento de saúde (executante)">
         <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
           <Field label="37. Nome do estabelecimento executante" value={form.estabelecimentoExecutante} onChange={(value) => update("estabelecimentoExecutante", value)} />
-          <Field label="38. CNES do estabelecimento executante" value={form.cnesExecutante} onChange={(value) => update("cnesExecutante", value.replace(/\D/g, "").slice(0, 7))} />
+          <Field label="38. CNES do estabelecimento executante" value={form.cnesExecutante} onChange={onExecutorCnesChange} />
         </div>
+        <p className="mt-2 text-xs text-slate-500">Informe o CNES do estabelecimento que executará o procedimento. Esta consulta é independente da consulta do estabelecimento solicitante.</p>
+        {executorCnesStatus !== "idle" && (
+          <p
+            className={`mt-3 rounded-lg px-3 py-2 text-sm ${
+              executorCnesStatus === "success"
+                ? "bg-emerald-50 text-emerald-800"
+                : executorCnesStatus === "loading"
+                  ? "bg-sky-50 text-sky-800"
+                  : "bg-amber-50 text-amber-900"
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            {executorCnesStatus === "loading" ? "Consultando CNES do estabelecimento executante…" : executorCnesMessage}
+          </p>
+        )}
       </FormSection>
     </div>
   );
@@ -682,7 +875,7 @@ function SignatureLine({ label }: { label: string }) {
   );
 }
 
-function ApacPreview({ form }: { form: MedicalDocumentForm }) {
+function ApacPreview({ form, currentDate }: { form: MedicalDocumentForm; currentDate: string }) {
   return (
     <div className="document-content apac-paper mt-5 space-y-1 rounded border border-slate-400 bg-white p-3 text-slate-900">
       <div className="mb-2 flex items-center justify-between border-b-2 border-slate-900 pb-2">
@@ -740,7 +933,7 @@ function ApacPreview({ form }: { form: MedicalDocumentForm }) {
       <ApacPreviewSection title="Solicitação">
         <ApacPreviewRow fields={[
           ["28. Profissional solicitante", form.profissional, "grow"],
-          ["29. Data da solicitação", form.dataDocumento ? formatDate(form.dataDocumento) : "", "w-32"],
+          ["29. Data da solicitação", form.dataDocumento || currentDate ? formatDate(form.dataDocumento || currentDate) : "", "w-32"],
           ["30. Assinatura e carimbo", "", "w-40"],
         ]} />
         <ApacPreviewRow fields={[

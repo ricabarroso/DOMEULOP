@@ -51,8 +51,13 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm)
   }
 
   if (type === "receita") {
-    write("Medicamentos", form.medicamentos, true);
-    write("Dosagem e modo de usar", form.dosagem, true);
+    form.medicamentos.forEach((medication, index) => {
+      write(`Medicamento ${index + 1}`, medication.nome);
+      write("Apresentação / concentração", medication.apresentacao);
+      write("Posologia e modo de usar", medication.posologia, true);
+      write("Quantidade a dispensar", medication.quantidade);
+      y += 3;
+    });
     write("Observações", form.observacoes, true);
   } else if (type === "atestado") {
     write("Período de afastamento", form.periodo);
@@ -64,6 +69,7 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm)
     write("Exames solicitados", form.exames, true);
     write("Observações", form.observacoes, true);
   }
+  if (form.cidadeEstado) write("Cidade/estado", form.cidadeEstado);
   write("Data", form.dataDocumento ? formatDate(form.dataDocumento) : "Não informada");
   y += 14;
   pdf.setDrawColor(80);

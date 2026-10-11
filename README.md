@@ -5,6 +5,8 @@ Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos
 ## Funcionalidades
 
 - Geração de texto estruturado para receitas médicas
+- Inclusão de vários medicamentos por receita, cada um com apresentação/concentração, posologia e quantidade a dispensar
+- Data do documento preenchida com a data local atual; cidade/estado é informado manualmente
 - Atestado médico com período de afastamento e observações
 - Pedido de exames com descrição clínica e orientação de coleta
 - APAC com justificativa, procedimentos e critérios de segurança
@@ -27,7 +29,7 @@ Em cada página, preencha e confira a pré-visualização. **Abrir PDF para visu
 
 Ao informar os 7 dígitos do CNES, a aplicação consulta a API pública de Dados Abertos do Ministério da Saúde e mostra nome, endereço e CEP do estabelecimento, quando disponíveis.
 
-Na página APAC, escolher CNS como documento do profissional solicitante e informar 15 dígitos consulta a busca pública de profissionais do CNES (`/services/profissionais?cns=...`). Quando localizado, o nome do profissional é preenchido para conferência. A consulta é limitada ao CNS do profissional no cadastro público do CNES; o CNS do paciente permanece no formulário e no PDF, sem ser enviado para a API. A geração do PDF também acontece localmente no navegador.
+Na página APAC, solicitante e executante são estabelecimentos independentes e têm campos e consultas CNES separados. A consulta de um não preenche nem altera os dados do outro. Escolher CNS como documento do profissional solicitante e informar 15 dígitos consulta a busca pública de profissionais do CNES (`/services/profissionais?cns=...`). Quando localizado, o nome do profissional é preenchido para conferência. A consulta é limitada ao CNS do profissional no cadastro público do CNES; o CNS do paciente permanece no formulário e no PDF, sem ser enviado para a API. A geração do PDF também acontece localmente no navegador.
 
 ## Regras de privacidade
 
