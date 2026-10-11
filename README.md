@@ -5,13 +5,14 @@ Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos
 ## Funcionalidades
 
 - Geração de texto estruturado para receitas médicas
-- Inclusão de vários medicamentos por receita, cada um com apresentação/concentração, posologia e quantidade a dispensar
+- Inclusão de vários medicamentos por receita, impressos no formato “medicamento/concentração — quantidade” com a posologia logo abaixo
 - Data do documento preenchida com a data local atual; cidade/estado é informado manualmente
 - Atestado médico com período de afastamento e observações
 - Pedido de exames com descrição clínica e orientação de coleta
 - APAC com justificativa, procedimentos e critérios de segurança
 - Consulta automática do estabelecimento pelo código CNES
 - Páginas dedicadas para cada tipo de documento
+- Modelos PDF com seções visuais para receita, atestado e pedido de exames; a APAC mantém sua estrutura de campos
 - Geração de PDF no navegador com abertura da visualização em nova aba
 - Aviso explícito sobre privacidade e necessidade de consentimento
 - Visualização em tempo real do documento pronto para copiar e usar

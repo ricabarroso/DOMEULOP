@@ -11,71 +11,198 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm)
     return pdf.output("blob");
   }
 
-  const width = pdf.internal.pageSize.getWidth();
-  const contentWidth = width - margin * 2;
-  let y = 24;
-  const title = type === "receita" ? "RECEITA MÉDICA" : type === "atestado" ? "ATESTADO MÉDICO" : "PEDIDO DE EXAME";
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const contentWidth = pageWidth - margin * 2;
+  const title = type === "receita" ? "RECEITA MÉDICA" : type === "atestado" ? "ATESTADO MÉDICO" : "PEDIDO DE EXAMES";
+  const ink: [number, number, number] = [21, 48, 71];
+  const accent: [number, number, number] = [18, 105, 120];
+  const pale: [number, number, number] = [239, 246, 248];
+  let y = 0;
 
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(16);
-  pdf.text(title, margin, y);
-  y += 10;
-  pdf.setDrawColor(120);
-  pdf.line(margin, y, width - margin, y);
-  y += 8;
-
-  const write = (label: string, value: string, multiline = false) => {
+  const pageHeader = (continuation = false) => {
+    pdf.setFillColor(...ink);
+    pdf.rect(0, 0, pageWidth, 30, "F");
+    pdf.setFillColor(...accent);
+    pdf.rect(0, 30, pageWidth, 2, "F");
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(10);
-    pdf.text(label, margin, y);
-    y += 5;
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    const lines = pdf.splitTextToSize(value || " ", contentWidth);
-    const height = Math.max(6, lines.length * 5);
-    if (y + height > 275) {
-      pdf.addPage();
-      y = 20;
+    pdf.setFontSize(15);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text(title, margin, 17);
+    if (continuation) {
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.text("CONTINUAÇÃO", pageWidth - margin, 17, { align: "right" });
     }
-    pdf.text(lines, margin, y);
-    y += height + (multiline ? 5 : 3);
+    pdf.setTextColor(...ink);
+    y = 40;
   };
 
-  write("Paciente", form.paciente);
-  if (form.nascimento) write("Data de nascimento", formatDate(form.nascimento));
-  write(type === "exame" ? "Profissional solicitante" : "Profissional", form.profissional);
-  write("CRM", form.crm);
-  if (form.nomeEstabelecimento || form.cnes) {
-    write("Estabelecimento / CNES", [form.nomeEstabelecimento, form.enderecoEstabelecimento, form.cnes].filter(Boolean).join(" — "));
+  const ensureSpace = (height: number) => {
+    if (y + height <= pageHeight - 18) return;
+    pdf.addPage();
+    pageHeader(true);
+    if (form.paciente) {
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.text(`Paciente: ${form.paciente}`, margin, y);
+      y += 7;
+    }
+  };
+
+  const section = (heading: string) => {
+    ensureSpace(12);
+    pdf.setFillColor(...pale);
+    pdf.roundedRect(margin, y, contentWidth, 7, 1.5, 1.5, "F");
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8);
+    pdf.setTextColor(...accent);
+    pdf.text(heading.toLocaleUpperCase("pt-BR"), margin + 3, y + 4.8);
+    pdf.setTextColor(...ink);
+    y += 10;
+  };
+
+  const infoRow = (fields: { label: string; value: string; ratio: number }[]) => {
+    const height = 14;
+    ensureSpace(height + 2);
+    let x = margin;
+    for (const item of fields) {
+      const cellWidth = contentWidth * item.ratio;
+      pdf.setDrawColor(202, 215, 222);
+      pdf.setFillColor(255, 255, 255);
+      pdf.roundedRect(x, y, cellWidth - 1.5, height, 1, 1, "FD");
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7);
+      pdf.setTextColor(91, 111, 125);
+      pdf.text(item.label.toLocaleUpperCase("pt-BR"), x + 2.5, y + 4);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(...ink);
+      const valueLines = pdf.splitTextToSize(item.value || " ", cellWidth - 5);
+      pdf.text(valueLines[0], x + 2.5, y + 10);
+      x += cellWidth;
+    }
+    pdf.setTextColor(...ink);
+    y += height + 3;
+  };
+
+  const textBlock = (label: string, value: string, options: { indent?: number; fontSize?: number } = {}) => {
+    const indent = options.indent ?? 0;
+    const fontSize = options.fontSize ?? 10;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(fontSize);
+    const lines = pdf.splitTextToSize(value || " ", contentWidth - indent);
+    const height = Math.max(5, lines.length * 4.8);
+    ensureSpace(height + (label ? 7 : 2));
+    if (label) {
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8);
+      pdf.setTextColor(91, 111, 125);
+      pdf.text(label.toLocaleUpperCase("pt-BR"), margin + indent, y);
+      y += 4.5;
+    }
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(fontSize);
+    pdf.setTextColor(...ink);
+    pdf.text(lines, margin + indent, y);
+    y += height + 3;
+    pdf.setTextColor(...ink);
+  };
+
+  pageHeader();
+  section("Identificação do paciente");
+  infoRow([
+    { label: "Paciente", value: form.paciente, ratio: 0.7 },
+    { label: "Data de nascimento", value: form.nascimento ? formatDate(form.nascimento) : "", ratio: 0.3 },
+  ]);
+  section(type === "exame" ? "Profissional solicitante" : "Profissional responsável");
+  infoRow([
+    { label: type === "exame" ? "Solicitante" : "Profissional", value: form.profissional, ratio: 0.68 },
+    { label: "CRM", value: form.crm, ratio: 0.32 },
+  ]);
+  if (form.nomeEstabelecimento || form.enderecoEstabelecimento || form.cnes) {
+    textBlock(
+      "Estabelecimento / CNES",
+      [form.nomeEstabelecimento, form.enderecoEstabelecimento, form.cnes ? `CNES ${form.cnes}` : ""]
+        .filter(Boolean)
+        .join(" — "),
+    );
   }
 
   if (type === "receita") {
+    section("Prescrição");
     form.medicamentos.forEach((medication, index) => {
-      write(`Medicamento ${index + 1}`, medication.nome);
-      write("Apresentação / concentração", medication.apresentacao);
-      write("Posologia e modo de usar", medication.posologia, true);
-      write("Quantidade a dispensar", medication.quantidade);
-      y += 3;
+      const identity = [
+        medication.nome || "Medicamento não informado",
+        medication.apresentacao,
+      ].filter(Boolean).join(" ");
+      const firstLine = `${index + 1}. ${identity}${medication.quantidade ? `  ---  ${medication.quantidade}` : ""}`;
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      const nameLines = pdf.splitTextToSize(firstLine, contentWidth - 7);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      const posologyLines = pdf.splitTextToSize(medication.posologia || "Posologia não informada", contentWidth - 12);
+      const cardHeight = 8 + nameLines.length * 4.5 + posologyLines.length * 4.2;
+      ensureSpace(cardHeight + 3);
+      pdf.setFillColor(249, 251, 252);
+      pdf.setDrawColor(222, 231, 235);
+      pdf.roundedRect(margin, y, contentWidth, cardHeight, 1.5, 1.5, "FD");
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.setTextColor(...ink);
+      pdf.text(nameLines, margin + 4, y + 5);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.text(posologyLines, margin + 9, y + 5 + nameLines.length * 4.5 + 1);
+      y += cardHeight + 3;
     });
-    write("Observações", form.observacoes, true);
+    if (form.observacoes) textBlock("Observações", form.observacoes);
   } else if (type === "atestado") {
-    write("Período de afastamento", form.periodo);
-    write("Motivo", form.motivo, true);
-    write("Observações", form.observacoes, true);
-    write("Declaração", `Declaro que o(a) paciente acima identificado(a) foi avaliado(a) e necessita de afastamento pelo período informado.`);
+    section("Atestado");
+    infoRow([{ label: "Período de afastamento", value: form.periodo, ratio: 1 }]);
+    textBlock("Motivo / justificativa", form.motivo, { fontSize: 10 });
+    textBlock(
+      "",
+      "Declaro que o(a) paciente acima identificado(a) foi avaliado(a) e necessita de afastamento pelo período informado.",
+      { fontSize: 10 },
+    );
+    if (form.observacoes) textBlock("Observações", form.observacoes);
   } else {
-    write("Motivo / indicação clínica", form.motivo, true);
-    write("Exames solicitados", form.exames, true);
-    write("Observações", form.observacoes, true);
+    section("Solicitação de exames");
+    textBlock("Motivo / indicação clínica", form.motivo, { fontSize: 10 });
+    const exams = form.exames.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+    exams.forEach((exam, index) => {
+      textBlock(`${index + 1}. EXAME SOLICITADO`, exam, { fontSize: 10 });
+    });
+    if (form.observacoes) textBlock("Observações", form.observacoes);
   }
-  if (form.cidadeEstado) write("Cidade/estado", form.cidadeEstado);
-  write("Data", form.dataDocumento ? formatDate(form.dataDocumento) : "Não informada");
-  y += 14;
-  pdf.setDrawColor(80);
-  pdf.line(margin + 25, y, width - margin - 25, y);
-  pdf.setFont("helvetica", "normal");
+
+  const footerHeight = 31;
+  ensureSpace(footerHeight);
+  y += 6;
+  if (form.cidadeEstado || form.dataDocumento) {
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.setTextColor(...ink);
+    const placeAndDate = [form.cidadeEstado, form.dataDocumento ? formatDate(form.dataDocumento) : ""]
+      .filter(Boolean)
+      .join(", ");
+    pdf.text(placeAndDate, pageWidth - margin, y, { align: "right" });
+    y += 11;
+  }
+  pdf.setDrawColor(...ink);
+  pdf.line(margin + 28, y + 7, pageWidth - margin - 28, y + 7);
+  pdf.setFont("helvetica", "bold");
   pdf.setFontSize(9);
-  pdf.text("Assinatura e carimbo do profissional", width / 2, y + 5, { align: "center" });
+  pdf.setTextColor(...ink);
+  pdf.text(form.profissional || "Profissional responsável", pageWidth / 2, y + 12, { align: "center" });
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  pdf.text(`CRM ${form.crm}`.trim(), pageWidth / 2, y + 17, { align: "center" });
+  pdf.setFontSize(7);
+  pdf.setTextColor(91, 111, 125);
+  pdf.text("Assinatura e carimbo", pageWidth / 2, y + 22, { align: "center" });
   return pdf.output("blob");
 }
 
