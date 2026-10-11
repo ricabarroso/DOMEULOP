@@ -45,7 +45,6 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm)
   if (form.nascimento) write("Data de nascimento", formatDate(form.nascimento));
   write(type === "exame" ? "Profissional solicitante" : "Profissional", form.profissional);
   write("CRM", form.crm);
-  if (form.especialidade) write("Especialidade", form.especialidade);
   if (form.nomeEstabelecimento || form.cnes) {
     write("Estabelecimento / CNES", [form.nomeEstabelecimento, form.enderecoEstabelecimento, form.cnes].filter(Boolean).join(" — "));
   }

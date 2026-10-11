@@ -18,7 +18,6 @@ export type MedicalDocumentForm = {
   nascimento: string;
   profissional: string;
   crm: string;
-  especialidade: string;
   procedimento: string;
   motivo: string;
   cidadeEstado: string;
@@ -92,7 +91,6 @@ const initialForm: MedicalDocumentForm = {
   nascimento: "",
   profissional: "",
   crm: "",
-  especialidade: "",
   procedimento: "",
   motivo: "",
   cidadeEstado: "",
@@ -200,11 +198,11 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
 
     switch (documentType) {
       case "receita":
-        return `RECEITA MÉDICA\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}\nEspecialidade: ${form.especialidade}${establishment}\n\nMEDICAMENTOS\n${form.medicamentos.map((medication, index) => `${index + 1}. ${medication.nome || "Medicamento não informado"}\n   Apresentação/concentração: ${medication.apresentacao}\n   Posologia e modo de usar: ${medication.posologia}\n   Quantidade a dispensar: ${medication.quantidade}`).join("\n\n")}\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
+        return `RECEITA MÉDICA\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}${establishment}\n\nMEDICAMENTOS\n${form.medicamentos.map((medication, index) => `${index + 1}. ${medication.nome || "Medicamento não informado"}\n   Apresentação/concentração: ${medication.apresentacao}\n   Posologia e modo de usar: ${medication.posologia}\n   Quantidade a dispensar: ${medication.quantidade}`).join("\n\n")}\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
       case "atestado":
-        return `ATESTADO MÉDICO\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}\nEspecialidade: ${form.especialidade}${establishment}\n\nDeclaro, por meio deste, que o paciente acima foi avaliado e necessita de afastamento por ${form.periodo}, em razão de ${form.motivo}.\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
+        return `ATESTADO MÉDICO\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}${establishment}\n\nDeclaro, por meio deste, que o paciente acima foi avaliado e necessita de afastamento por ${form.periodo}, em razão de ${form.motivo}.\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
       case "exame":
-        return `PEDIDO DE EXAME\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nSolicitante: ${form.profissional}\nCRM: ${form.crm}\nEspecialidade: ${form.especialidade}${establishment}\n\nMotivo da solicitação: ${form.motivo}\nExames solicitados:\n${formatList(form.exames)}\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
+        return `PEDIDO DE EXAME\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nSolicitante: ${form.profissional}\nCRM: ${form.crm}${establishment}\n\nMotivo da solicitação: ${form.motivo}\nExames solicitados:\n${formatList(form.exames)}\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
       case "apac":
         return `LAUDO MÉDICO PARA PROCEDIMENTOS DE ALTA COMPLEXIDADE - APAC\n\nIDENTIFICAÇÃO DO ESTABELECIMENTO DE SAÚDE (SOLICITANTE)\n1. Nome: ${form.nomeEstabelecimento}\n2. CNES: ${form.cnes}\n\nIDENTIFICAÇÃO DO PACIENTE\n3. Nome: ${form.paciente}\n4. Nº prontuário: ${form.numeroProntuario}\n5. CNS: ${form.cns}\n6. Data de nascimento: ${form.nascimento ? formatDate(form.nascimento) : ""}\n7. Sexo: ${form.sexo}\n8. Nome da mãe: ${form.nomeMae}\n9. Telefone: ${form.telefone}\n10. Endereço: ${form.enderecoPaciente}\n11. Município: ${form.municipioResidencia}\n15. Código IBGE: ${form.codigoIbge}  16. UF: ${form.uf}  17. CEP: ${form.cep}\n\nPROCEDIMENTO SOLICITADO\n${form.procedimentos.map((item, index) => `${index + 1}. Código ${item.codigo} — ${item.nome} — Qtd. ${item.quantidade}`).join("\n")}\n\nJUSTIFICATIVA DO(S) PROCEDIMENTO(S) SOLICITADO(S)\n21. Diagnóstico: ${form.diagnostico}\n22. CID principal: ${form.cidPrincipal}  23. Secundário: ${form.cidSecundario}  24. Associados: ${form.cidAssociados}\n25. Resumo da anamnese e exame físico: ${form.anamnese}\n26. Exames complementares realizados: ${form.examesComplementares}\n27. Justificativa do procedimento: ${form.justificativaApac}\n\nSOLICITAÇÃO\n28. Profissional solicitante: ${form.profissional}\n29. Data: ${formattedDate}\nDocumento ${form.documentoSolicitanteTipo}: ${form.documentoSolicitanteNumero}\n\nAUTORIZAÇÃO\n31. Profissional autorizador: ${form.profissionalAutorizador}\n32. Código do órgão emissor: ${form.codigoOrgaoEmissor}\n33. Número da autorização APAC: ${form.numeroAutorizacao}\nDocumento ${form.documentoAutorizadorTipo}: ${form.documentoAutorizadorNumero}\n34. Data da autorização: ${form.dataAutorizacao ? formatDate(form.dataAutorizacao) : ""}\n36. Validade: ${form.validadeInicio ? formatMonth(form.validadeInicio) : ""} até ${form.validadeFim ? formatMonth(form.validadeFim) : ""}\n\nIDENTIFICAÇÃO DO ESTABELECIMENTO DE SAÚDE (EXECUTANTE)\n37. Nome: ${form.estabelecimentoExecutante}\n38. CNES: ${form.cnesExecutante}`;
     }
@@ -463,7 +461,6 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                     <Field label="Nascimento" type="date" value={form.nascimento} onChange={(value) => setForm((prev) => ({ ...prev, nascimento: value }))} />
                     <Field label="Profissional" value={form.profissional} onChange={(value) => setForm((prev) => ({ ...prev, profissional: value }))} />
                     <Field label="CRM" value={form.crm} onChange={(value) => setForm((prev) => ({ ...prev, crm: value }))} />
-                    <Field label="Especialidade" value={form.especialidade} onChange={(value) => setForm((prev) => ({ ...prev, especialidade: value }))} />
                     <Field label="Cidade/estado" value={form.cidadeEstado} onChange={(value) => setForm((prev) => ({ ...prev, cidadeEstado: value }))} />
                     <Field label="Data do documento" type="date" value={form.dataDocumento || currentDate} onChange={(value) => setForm((prev) => ({ ...prev, dataDocumento: value }))} />
                     <Field label="CNES" value={form.cnes} onChange={handleCnesChange} />
