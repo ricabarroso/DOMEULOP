@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
-import { createDocumentPdf } from "@/lib/create-document-pdf";
+import { createDocumentPdf, type DocumentLogo } from "@/lib/create-document-pdf";
 
 export type DocumentType = "receita" | "atestado" | "exame" | "apac";
 type ApacProcedure = { codigo: string; nome: string; quantidade: string };
@@ -158,6 +158,8 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
   const [form, setForm] = useState<MedicalDocumentForm>(initialForm);
   const currentDate = useSyncExternalStore(subscribeToLocalDate, getCurrentLocalDate, () => "");
   const [copied, setCopied] = useState(false);
+  const [logo, setLogo] = useState<DocumentLogo | null>(null);
+  const [logoError, setLogoError] = useState("");
   const [pdfError, setPdfError] = useState("");
   const [cnesStatus, setCnesStatus] = useState<"idle" | "loading" | "success" | "not-found" | "error">("idle");
   const [cnesMessage, setCnesMessage] = useState("");
@@ -394,6 +396,40 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
     window.setTimeout(() => setCopied(false), 1500);
   };
 
+  const handleLogoChange = (file: File | undefined) => {
+    setLogoError("");
+    if (!file) return;
+    if (file.type !== "image/png" && file.type !== "image/jpeg") {
+      setLogoError("Use uma imagem PNG ou JPEG.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setLogoError("A imagem deve ter no máximo 2 MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === "string" ? reader.result : "";
+      const image = new window.Image();
+      image.onload = () => {
+        if (!image.naturalWidth || !image.naturalHeight) {
+          setLogoError("Não foi possível ler a imagem.");
+          return;
+        }
+        setLogo({
+          dataUrl,
+          format: file.type === "image/png" ? "PNG" : "JPEG",
+          width: image.naturalWidth,
+          height: image.naturalHeight,
+        });
+      };
+      image.onerror = () => setLogoError("Não foi possível ler a imagem.");
+      image.src = dataUrl;
+    };
+    reader.onerror = () => setLogoError("Não foi possível ler a imagem.");
+    reader.readAsDataURL(file);
+  };
+
   const handleOpenPdf = async () => {
     setPdfError("");
     const previewWindow = window.open("", "_blank");
@@ -408,7 +444,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
       const blob = createDocumentPdf(documentType, {
         ...form,
         dataDocumento: form.dataDocumento || currentDate,
-      });
+      }, logo);
       const pdfUrl = URL.createObjectURL(blob);
       previewWindow.location.replace(pdfUrl);
       window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 5 * 60 * 1000);
@@ -501,6 +537,35 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
 
               {documentType !== "apac" && (
                 <div className="mt-5 space-y-4">
+                  <FormSection title="Logo do documento (opcional)">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg"
+                        aria-label="Enviar logo"
+                        onChange={(event) => {
+                          handleLogoChange(event.target.files?.[0]);
+                          event.target.value = "";
+                        }}
+                        className="text-sm"
+                      />
+                      {logo && (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={logo.dataUrl} alt="Logo selecionado" className="h-12 max-w-40 rounded border border-slate-200 bg-white object-contain p-1" />
+                          <button
+                            type="button"
+                            onClick={() => setLogo(null)}
+                            className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+                          >
+                            Remover logo
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {logoError && <p role="alert" className="mt-2 text-sm text-red-700">{logoError}</p>}
+                    <p className="mt-2 text-xs text-slate-600">PNG ou JPEG, até 2 MB. A imagem fica apenas no navegador e aparece no cabeçalho do PDF.</p>
+                  </FormSection>
                   {documentType === "receita" && (
                     <FormSection title="Medicamentos prescritos">
                       <div className="space-y-4">
@@ -624,6 +689,10 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
               <ApacPreview form={form} currentDate={currentDate} />
             ) : (
               <div className="document-content mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm leading-7 text-slate-800 md:p-8">
+                {logo && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logo.dataUrl} alt="Logo" className="mb-4 ml-auto h-16 max-w-48 object-contain" />
+                )}
                 <pre className="whitespace-pre-wrap font-sans">{preview}</pre>
               </div>
             )}

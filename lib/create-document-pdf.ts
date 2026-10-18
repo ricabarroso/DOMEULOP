@@ -3,7 +3,14 @@ import type { DocumentType, MedicalDocumentForm } from "@/components/document-ed
 
 const margin = 12;
 
-export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm) {
+export type DocumentLogo = {
+  dataUrl: string;
+  format: "PNG" | "JPEG";
+  width: number;
+  height: number;
+};
+
+export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm, logo?: DocumentLogo | null) {
   const pdf = new jsPDF({ format: "a4", unit: "mm" });
   pdf.setProperties({ title: `${type.toUpperCase()} - ${form.paciente || "Documento médico"}` });
   if (type === "apac") {
@@ -29,10 +36,22 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm)
     pdf.setFontSize(15);
     pdf.setTextColor(255, 255, 255);
     pdf.text(title, margin, 17);
+    let rightEdge = pageWidth - margin;
+    if (logo) {
+      const scale = Math.min(40 / logo.width, 22 / logo.height);
+      const logoWidth = logo.width * scale;
+      const logoHeight = logo.height * scale;
+      const boxWidth = logoWidth + 4;
+      const boxX = pageWidth - margin - boxWidth;
+      pdf.setFillColor(255, 255, 255);
+      pdf.roundedRect(boxX, 15 - logoHeight / 2 - 2, boxWidth, logoHeight + 4, 1.5, 1.5, "F");
+      pdf.addImage(logo.dataUrl, logo.format, boxX + 2, 15 - logoHeight / 2, logoWidth, logoHeight);
+      rightEdge = boxX - 4;
+    }
     if (continuation) {
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(8);
-      pdf.text("CONTINUAÇÃO", pageWidth - margin, 17, { align: "right" });
+      pdf.text("CONTINUAÇÃO", rightEdge, 17, { align: "right" });
     }
     pdf.setTextColor(...ink);
     y = 40;
