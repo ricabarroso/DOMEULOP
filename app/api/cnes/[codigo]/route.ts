@@ -47,7 +47,11 @@ export async function GET(
   try {
     response = await fetch(
       `https://apidadosabertos.saude.gov.br/cnes/estabelecimentos/${codigo}`,
-      { cache: "no-store", signal: AbortSignal.timeout(6000) },
+      {
+        cache: "no-store",
+        headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 (compatible; gerador-documentos-medicos)" },
+        signal: AbortSignal.timeout(8000),
+      },
     );
   } catch (error) {
     if (error instanceof Error && error.name === "TimeoutError") {

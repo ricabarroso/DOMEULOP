@@ -1,6 +1,6 @@
 # Gerador de Documentos Médicos
 
-Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos de exames e APAC com foco em uso clínico seguro, organização e privacidade.
+Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos de exames e APAC, além de disponibilizar o PDF original da ficha de Atendimento Anti-Rábico Humano, com foco em uso clínico seguro, organização e privacidade.
 
 ## Funcionalidades
 
@@ -10,6 +10,8 @@ Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos
 - Atestado médico com período de afastamento e observações
 - Pedido de exames com descrição clínica e orientação de coleta
 - APAC com justificativa, procedimentos e critérios de segurança
+- Preenchimento dos campos da ficha original de Atendimento Anti-Rábico Humano
+- Geração local de uma cópia preenchida sobre o PDF original, mantendo as duas páginas e o layout da ficha
 - Consulta automática do estabelecimento pelo código CNES
 - Páginas dedicadas para cada tipo de documento
 - Modelos PDF com seções visuais para receita, atestado e pedido de exames; a APAC mantém sua estrutura de campos
@@ -23,8 +25,11 @@ Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos
 - `/atestado` — atestado médico
 - `/pedido-exames` — pedido de exames
 - `/apac` — APAC
+- `/atendimento-antirrabico` — preenchimento, pré-visualização, impressão e download da ficha de Atendimento Anti-Rábico Humano
 
-Em cada página, preencha e confira a pré-visualização. **Abrir PDF para visualizar / imprimir** gera o arquivo localmente no navegador e abre a visualização do PDF em outra aba, de onde é possível imprimir ou baixar.
+O caminho `/atendimento-antirrabico` usa como base, sem alterar o conteúdo impresso, o PDF original indicado pelo usuário e baixado do [portal oficial do SINAN](https://portalsinan.saude.gov.br/images/documentos/Agravos/Atendimento%20Anti-rabico/anti_rabico_v5.pdf), armazenado em `public/atendimento-antirrabico.pdf`. A aplicação coloca os dados digitados sobre uma cópia local desse arquivo para gerar o PDF preenchido. O PDF indica SVS — 27/09/2005; confirme a versão e as orientações vigentes antes de usar.
+
+Nas páginas editáveis, preencha e confira a pré-visualização. Na página antirrábica, preencha os campos correspondentes à ficha e gere o PDF para visualizar, imprimir ou baixar.
 
 ## Consulta CNES
 
@@ -37,6 +42,7 @@ Na página APAC, solicitante e executante são estabelecimentos independentes e 
 - O formulário solicita apenas os dados indispensáveis para cada documento.
 - Sugere-se evitar armazenamento em planilhas ou canais inseguros.
 - Não há busca automática de CPF.
+- A página de atendimento antirrábico não consulta nem transmite dados clínicos; a ficha preenchida é gerada localmente no navegador e não é salva pela aplicação.
 - A consulta de CNS é somente para identificar profissionais na fonte pública do CNES; dados de pacientes não são pesquisados nem enviados a esse serviço.
 - O uso de CNES e CNS deve seguir as regras de acesso e privacidade da instituição.
 

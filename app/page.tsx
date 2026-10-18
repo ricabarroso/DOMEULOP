@@ -25,6 +25,12 @@ const documents = [
     description: "Estruture procedimento, justificativa e dados do estabelecimento.",
     accent: "from-amber-500 to-orange-600",
   },
+  {
+    href: "/atendimento-antirrabico",
+    title: "Ficha de atendimento antirrábico",
+    description: "Preencha os dados e gere uma cópia do formulário original em PDF.",
+    accent: "from-rose-500 to-red-600",
+  },
 ];
 
 export default function Home() {
@@ -36,11 +42,10 @@ export default function Home() {
             Gerador de documentos médicos
           </p>
           <h1 className="mt-3 max-w-3xl text-3xl font-bold md:text-5xl">
-            Escolha um documento para preencher e salvar em PDF
+            Escolha um documento para preencher ou gerar em PDF
           </h1>
           <p className="mt-4 max-w-2xl leading-7 text-slate-600">
-            Cada documento tem sua própria página. Revise o formulário, abra a
-            visualização do PDF e imprima ou baixe o arquivo.
+            Preencha os documentos na aplicação e gere PDFs; a ficha antirrábica mantém o formulário original.
           </p>
         </header>
 
@@ -55,16 +60,16 @@ export default function Home() {
               <h2 className="text-xl font-semibold">{document.title}</h2>
               <p className="mt-2 text-slate-600">{document.description}</p>
               <span className="mt-5 inline-flex font-semibold text-sky-800 group-hover:underline">
-                Abrir formulário <span aria-hidden="true" className="ml-2">→</span>
+                Abrir documento <span aria-hidden="true" className="ml-2">→</span>
               </span>
             </Link>
           ))}
         </section>
 
         <aside className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900">
-          Privacidade: use apenas os dados necessários. As informações são mantidas
-          nesta página durante o preenchimento; evite salvar documentos em locais
-          compartilhados sem autorização.
+          Privacidade: use apenas os dados necessários e evite salvar informações clínicas
+          em locais compartilhados sem autorização. Na ficha antirrábica, o preenchimento
+          permanece no navegador e não é enviado ou salvo pela aplicação.
         </aside>
       </div>
     </main>

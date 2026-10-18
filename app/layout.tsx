@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Gerador de Documentos Médicos",
-  description: "Gerador seguro de receitas, atestados, pedidos de exames e APAC em português do Brasil.",
+  description: "Gerador de receitas, atestados, pedidos de exames e APAC, com preenchimento da ficha original de atendimento antirrábico.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
