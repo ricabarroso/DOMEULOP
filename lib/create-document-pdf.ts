@@ -22,9 +22,9 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm,
   const pageHeight = pdf.internal.pageSize.getHeight();
   const contentWidth = pageWidth - margin * 2;
   const title = type === "receita" ? "RECEITA MÉDICA" : type === "atestado" ? "ATESTADO MÉDICO" : "PEDIDO DE EXAMES";
-  const ink: [number, number, number] = [21, 48, 71];
-  const accent: [number, number, number] = [18, 105, 120];
-  const pale: [number, number, number] = [239, 246, 248];
+  const ink: [number, number, number] = [128, 0, 24];
+  const accent: [number, number, number] = [196, 0, 36];
+  const pale: [number, number, number] = [255, 238, 241];
   let y = 0;
 
   const pageHeader = (continuation = false) => {
@@ -111,8 +111,7 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm,
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(fontSize);
     const lines = pdf.splitTextToSize(value || " ", contentWidth - indent);
-    const height = Math.max(5, lines.length * 4.8);
-    ensureSpace(height + (label ? 7 : 2));
+    ensureSpace((label ? 7 : 2) + 4.8);
     if (label) {
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(8);
@@ -123,8 +122,37 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm,
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(fontSize);
     pdf.setTextColor(...ink);
-    pdf.text(lines, margin + indent, y);
-    y += height + 3;
+    let lineIndex = 0;
+    while (lineIndex < lines.length) {
+      const availableLines = Math.floor((pageHeight - 18 - y) / 4.8);
+      if (availableLines < 1) {
+        pdf.addPage();
+        pageHeader(true);
+        if (form.paciente) {
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(8);
+          pdf.text(`Paciente: ${form.paciente}`, margin, y);
+          y += 7;
+        }
+        continue;
+      }
+
+      const lineChunk = lines.slice(lineIndex, lineIndex + availableLines);
+      pdf.text(lineChunk, margin + indent, y);
+      lineIndex += lineChunk.length;
+      y += lineChunk.length * 4.8;
+      if (lineIndex < lines.length) {
+        pdf.addPage();
+        pageHeader(true);
+        if (form.paciente) {
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(8);
+          pdf.text(`Paciente: ${form.paciente}`, margin, y);
+          y += 7;
+        }
+      }
+    }
+    y += 3;
     pdf.setTextColor(...ink);
   };
 
@@ -150,7 +178,10 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm,
 
   if (type === "receita") {
     section("Prescrição");
-    form.medicamentos.forEach((medication, index) => {
+    if (form.prescriptionType === "compounded") {
+      textBlock("Prescrição manipulada", form.compoundingText, { fontSize: 10 });
+    } else {
+      form.medicamentos.forEach((medication, index) => {
       const identity = [
         medication.nome || "Medicamento não informado",
         medication.apresentacao,
@@ -175,7 +206,8 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm,
       pdf.setFontSize(9);
       pdf.text(posologyLines, margin + 9, y + 5 + nameLines.length * 4.5 + 1);
       y += cardHeight + 3;
-    });
+      });
+    }
     if (form.observacoes) textBlock("Observações", form.observacoes);
   } else if (type === "atestado") {
     section("Atestado");
@@ -232,9 +264,10 @@ function drawApac(pdf: jsPDF, form: MedicalDocumentForm) {
   let y = 8;
 
   const section = (title: string) => {
-    pdf.setFillColor(20, 20, 20);
+    pdf.setFillColor(150, 0, 30);
     pdf.rect(left, y, width, 5.5, "F");
     pdf.setTextColor(255, 255, 255);
+    pdf.setTextColor(150, 0, 30);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(7);
     pdf.text(title.toLocaleUpperCase("pt-BR"), pageWidth / 2, y + 3.8, { align: "center" });
@@ -243,14 +276,16 @@ function drawApac(pdf: jsPDF, form: MedicalDocumentForm) {
   };
 
   const field = (x: number, fieldY: number, fieldWidth: number, height: number, label: string, value: string) => {
-    pdf.setDrawColor(90);
+    pdf.setDrawColor(180, 90, 100);
     pdf.setLineWidth(0.2);
     pdf.rect(x, fieldY, fieldWidth, height);
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(4.8);
+    pdf.setTextColor(145, 0, 30);
     pdf.text(label.toLocaleUpperCase("pt-BR"), x + 1.2, fieldY + 2.3);
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(7.2);
+    pdf.setTextColor(0, 0, 0);
     const lines = pdf.splitTextToSize(value || "", Math.max(5, fieldWidth - 2.5));
     if (lines.length) pdf.text(lines.slice(0, Math.max(1, Math.floor((height - 3) / 3))).join("\n"), x + 1.2, fieldY + 5.6);
   };
