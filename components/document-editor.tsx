@@ -1099,9 +1099,9 @@ function SignatureLine({ label }: { label: string }) {
 
 function ApacPreview({ form, currentDate }: { form: MedicalDocumentForm; currentDate: string }) {
   return (
-    <div className="document-content apac-paper mt-5 space-y-1 rounded border border-red-800 bg-white p-3 text-slate-900">
-      <div className="mb-2 flex items-center justify-between border-b-2 border-red-800 pb-2">
-        <div className="font-bold text-red-800">SUS<br /><span className="text-[9px] font-normal">Ministério da Saúde</span></div>
+    <div className="document-content apac-paper mt-5 space-y-1 rounded border border-slate-400 bg-white p-3 text-slate-900">
+      <div className="mb-2 flex items-center justify-between border-b-2 border-slate-900 pb-2">
+        <div className="font-bold">SUS<br /><span className="text-[9px] font-normal">Ministério da Saúde</span></div>
         <h3 className="max-w-[75%] text-center text-sm font-bold uppercase">Laudo médico para procedimentos de alta complexidade — APAC</h3>
       </div>
       <ApacPreviewSection title="Identificação do estabelecimento de saúde (solicitante)">
@@ -1191,8 +1191,8 @@ function ApacPreview({ form, currentDate }: { form: MedicalDocumentForm; current
 
 function ApacPreviewSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border border-red-800">
-      <h4 className="bg-red-800 px-2 py-1 text-center text-[9px] font-bold uppercase tracking-wide text-white">{title}</h4>
+    <section className="border border-slate-400">
+      <h4 className="bg-slate-900 px-2 py-1 text-center text-[9px] font-bold uppercase tracking-wide text-white">{title}</h4>
       <div className="space-y-1 p-1">{children}</div>
     </section>
   );
