@@ -1,5 +1,5 @@
 import Link from "next/link";
-import OAuthSignIn from "@/components/oauth-sign-in";
+import EmailSignIn from "@/components/email-sign-in";
 
 export default function LoginPage() {
   return (
@@ -10,11 +10,11 @@ export default function LoginPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-red-700">Acesso à conta</p>
           <h1 className="mt-2 text-3xl font-bold text-slate-950">Entrar no gerador</h1>
           <p className="mt-3 leading-6 text-slate-600">
-            Entre com Google ou Apple. Os três emails administradores informados têm acesso imediato.
+            Entre com e-mail e senha (o cadastro exige confirmar o e-mail). Os três emails administradores informados têm acesso imediato.
             Novos cadastros ficam pendentes até um administrador aprová-los.
           </p>
         </div>
-        <OAuthSignIn />
+        <EmailSignIn />
         <p className="text-xs leading-5 text-slate-500">
           Os modelos de prescrição salvos ficam vinculados à sua conta. Dados de pacientes e profissionais
           não são enviados ao Supabase e permanecem apenas na sessão desta página.
