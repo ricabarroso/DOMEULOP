@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { DocumentSessionProvider } from "@/components/document-session-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Gerador de Documentos Médicos",
-  description: "Gerador de receitas, atestados, pedidos de exames e APAC, com preenchimento da ficha original de atendimento antirrábico.",
+  description: "Gerador de documentos médicos com acesso autenticado e modelos de prescrição por conta.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -23,7 +24,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <DocumentSessionProvider>{children}</DocumentSessionProvider>
+      </body>
     </html>
   );
 }
