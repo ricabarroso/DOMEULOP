@@ -15,7 +15,12 @@ Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos
 - Consulta automática do estabelecimento pelo código CNES
 - Páginas dedicadas para cada tipo de documento
 - Modelos PDF com seções visuais para receita, atestado e pedido de exames; a APAC mantém sua estrutura de campos
+- Layout dos documentos em vermelho, com opção de incluir logo PNG/JPEG
 - Geração de PDF no navegador com abertura da visualização em nova aba
+- Sugestões de profissionais e estabelecimentos usados durante a sessão, com dados de paciente e profissional compartilhados entre os documentos
+- Receita de medicamento manipulado em texto livre
+- Modelos de prescrição por doença, salvos na conta e carregados com um clique
+- Login com Google ou Apple, aprovação administrativa de novas contas e revogação de acessos
 - Aviso explícito sobre privacidade e necessidade de consentimento
 - Visualização em tempo real do documento pronto para copiar e usar
 
@@ -25,6 +30,8 @@ Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos
 - `/atestado` — atestado médico
 - `/pedido-exames` — pedido de exames
 - `/apac` — APAC
+- `/login` — login com Google ou Apple
+- `/pending` — aviso de cadastro aguardando aprovação
 - `/atendimento-antirrabico` — preenchimento, pré-visualização, impressão e download da ficha de Atendimento Anti-Rábico Humano
 
 O caminho `/atendimento-antirrabico` usa como base, sem alterar o conteúdo impresso, o PDF original indicado pelo usuário e baixado do [portal oficial do SINAN](https://portalsinan.saude.gov.br/images/documentos/Agravos/Atendimento%20Anti-rabico/anti_rabico_v5.pdf), armazenado em `public/atendimento-antirrabico.pdf`. A aplicação coloca os dados digitados sobre uma cópia local desse arquivo para gerar o PDF preenchido. O PDF indica SVS — 27/09/2005; confirme a versão e as orientações vigentes antes de usar.
@@ -42,6 +49,9 @@ Na página APAC, solicitante e executante são estabelecimentos independentes e 
 - O formulário solicita apenas os dados indispensáveis para cada documento.
 - Sugere-se evitar armazenamento em planilhas ou canais inseguros.
 - Não há busca automática de CPF.
+- Os dados de paciente e profissional usados para preencher os documentos ficam apenas na memória da sessão do navegador. Não são gravados no Supabase e são descartados ao recarregar ou encerrar a página.
+- Os modelos de prescrição persistidos contêm somente doença/diagnóstico e dados da prescrição. Eles são vinculados à conta autenticada e protegidos por políticas RLS para que cada usuário acesse somente os próprios modelos.
+- O login é fornecido pelo Supabase Auth com Google ou Apple. Os três endereços autorizados abaixo têm acesso imediato e podem aprovar novos cadastros ou revogar o acesso de outras contas; outros usuários aguardam aprovação.
 - A página de atendimento antirrábico não consulta nem transmite dados clínicos; a ficha preenchida é gerada localmente no navegador e não é salva pela aplicação.
 - A consulta de CNS é somente para identificar profissionais na fonte pública do CNES; dados de pacientes não são pesquisados nem enviados a esse serviço.
 - O uso de CNES e CNS deve seguir as regras de acesso e privacidade da instituição.
@@ -49,11 +59,31 @@ Na página APAC, solicitante e executante são estabelecimentos independentes e 
 ## Como executar
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-A aplicação fica disponível em `http://localhost:3000`.
+A aplicação fica disponível em `http://localhost:3000`. O projeto requer uma versão do Node.js compatível com Next.js 16 (20.9 ou superior).
+
+## Configuração de contas e modelos de prescrição
+
+O login e o armazenamento por conta exigem um projeto Supabase configurado:
+
+1. Aplique as migrations `supabase/migrations/20261028000000_account_prescription_templates.sql` e `supabase/migrations/20261104000000_revoke_app_user_approval.sql` no banco do projeto.
+2. Crie `.env.local` na raiz com os valores do projeto Supabase:
+
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sua_chave_publicavel
+   ```
+
+3. No Supabase Auth, habilite Google e Apple e configure as credenciais OAuth nos respectivos provedores.
+4. Configure a URL do site e o callback `http://localhost:3000/auth/callback` (e a URL de produção correspondente) nas URLs de redirecionamento do Supabase e dos provedores.
+5. Os endereços `ricardobarroso.med@gmail.com`, `ricardo-barroso@hotmail.com` e `rica_bol@hotmail.com` são aprovados automaticamente e podem aceitar cadastros pendentes na página inicial. Outros emails entram como pendentes até um desses administradores aprovar.
+
+Na Vercel, configure `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` nas variáveis de ambiente do projeto e inclua o domínio de produção no site URL e nas URLs de callback permitidas do Supabase e dos provedores.
+
+Não use a chave `service_role` no navegador nem a envie ao repositório. Os modelos ficam vinculados ao usuário por políticas RLS; não são armazenados dados de pacientes nesses modelos.
 
 ## Build
 
