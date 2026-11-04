@@ -20,7 +20,7 @@ Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos
 - Sugestões de profissionais e estabelecimentos usados durante a sessão, com dados de paciente e profissional compartilhados entre os documentos
 - Receita de medicamento manipulado em texto livre
 - Modelos de prescrição por doença, salvos na conta e carregados com um clique
-- Login com Google ou Apple, aprovação administrativa de novas contas e revogação de acessos
+- Login com e-mail e senha, aprovação administrativa de novas contas e revogação de acessos
 - Aviso explícito sobre privacidade e necessidade de consentimento
 - Visualização em tempo real do documento pronto para copiar e usar
 
@@ -30,7 +30,7 @@ Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos
 - `/atestado` — atestado médico
 - `/pedido-exames` — pedido de exames
 - `/apac` — APAC
-- `/login` — login com Google ou Apple
+- `/login` — login com e-mail e senha
 - `/pending` — aviso de cadastro aguardando aprovação
 - `/atendimento-antirrabico` — preenchimento, pré-visualização, impressão e download da ficha de Atendimento Anti-Rábico Humano
 
@@ -51,7 +51,7 @@ Na página APAC, solicitante e executante são estabelecimentos independentes e 
 - Não há busca automática de CPF.
 - Os dados de paciente e profissional usados para preencher os documentos ficam apenas na memória da sessão do navegador. Não são gravados no Supabase e são descartados ao recarregar ou encerrar a página.
 - Os modelos de prescrição persistidos contêm somente doença/diagnóstico e dados da prescrição. Eles são vinculados à conta autenticada e protegidos por políticas RLS para que cada usuário acesse somente os próprios modelos.
-- O login é fornecido pelo Supabase Auth com Google ou Apple. Os três endereços autorizados abaixo têm acesso imediato e podem aprovar novos cadastros ou revogar o acesso de outras contas; outros usuários aguardam aprovação.
+- O login é fornecido pelo Supabase Auth com e-mail e senha (confirmação de e-mail obrigatória). Os três endereços autorizados abaixo têm acesso imediato e podem aprovar novos cadastros ou revogar o acesso de outras contas; outros usuários aguardam aprovação.
 - A página de atendimento antirrábico não consulta nem transmite dados clínicos; a ficha preenchida é gerada localmente no navegador e não é salva pela aplicação.
 - A consulta de CNS é somente para identificar profissionais na fonte pública do CNES; dados de pacientes não são pesquisados nem enviados a esse serviço.
 - O uso de CNES e CNS deve seguir as regras de acesso e privacidade da instituição.
@@ -77,7 +77,7 @@ O login e o armazenamento por conta exigem um projeto Supabase configurado:
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sua_chave_publicavel
    ```
 
-3. No Supabase Auth, habilite Google e Apple e configure as credenciais OAuth nos respectivos provedores.
+3. No Supabase Auth, mantenha o provedor Email habilitado com "Confirm email" ligado (não desligue: evita cadastro com e-mail de administrador alheio).
 4. Configure a URL do site e o callback `http://localhost:3000/auth/callback` (e a URL de produção correspondente) nas URLs de redirecionamento do Supabase e dos provedores.
 5. Os endereços `ricardobarroso.med@gmail.com`, `ricardo-barroso@hotmail.com` e `rica_bol@hotmail.com` são aprovados automaticamente e podem aceitar cadastros pendentes na página inicial. Outros emails entram como pendentes até um desses administradores aprovar.
 
