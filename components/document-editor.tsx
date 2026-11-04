@@ -4,10 +4,16 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { createDocumentPdf, type DocumentLogo } from "@/lib/create-document-pdf";
+import {
+  useDocumentSession,
+} from "@/components/document-session-provider";
+import type { SharedDocumentData } from "@/components/document-session-provider";
+import PrescriptionTemplateManager from "@/components/prescription-template-manager";
 
 export type DocumentType = "receita" | "atestado" | "exame" | "apac";
 type ApacProcedure = { codigo: string; nome: string; quantidade: string };
-type PrescriptionMedication = {
+export type PrescriptionType = "standard" | "compounded";
+export type PrescriptionMedication = {
   nome: string;
   apresentacao: string;
   posologia: string;
@@ -18,6 +24,8 @@ export type MedicalDocumentForm = {
   nascimento: string;
   profissional: string;
   crm: string;
+  prescriptionType: PrescriptionType;
+  compoundingText: string;
   procedimento: string;
   motivo: string;
   cidadeEstado: string;
@@ -91,6 +99,8 @@ const initialForm: MedicalDocumentForm = {
   nascimento: "",
   profissional: "",
   crm: "",
+  prescriptionType: "standard",
+  compoundingText: "",
   procedimento: "",
   motivo: "",
   cidadeEstado: "",
@@ -155,7 +165,15 @@ function isCnesLookup(value: unknown): value is CnesLookup {
 }
 
 export default function DocumentEditor({ documentType }: { documentType: DocumentType }) {
-  const [form, setForm] = useState<MedicalDocumentForm>(initialForm);
+  const {
+    sharedData,
+    professionals,
+    institutions,
+    updateSharedData,
+    clearSharedData,
+  } = useDocumentSession();
+  const [formState, setForm] = useState<MedicalDocumentForm>(initialForm);
+  const form = useMemo(() => ({ ...formState, ...sharedData }), [formState, sharedData]);
   const currentDate = useSyncExternalStore(subscribeToLocalDate, getCurrentLocalDate, () => "");
   const [copied, setCopied] = useState(false);
   const [logo, setLogo] = useState<DocumentLogo | null>(null);
@@ -177,6 +195,61 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
   const professionalCnsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const professionalCnsController = useRef<AbortController | null>(null);
   const professionalCnsRequestId = useRef(0);
+
+  const updateDocumentField = (key: keyof MedicalDocumentForm, value: string) => {
+    setForm((previous) => ({ ...previous, [key]: value }));
+    const sharedUpdate = getSharedFieldUpdate(key, value);
+    if (sharedUpdate) updateSharedData(sharedUpdate);
+  };
+
+  const handleProfessionalNameChange = (value: string) => {
+    const suggestion = professionals.find((item) => normalizeSuggestion(item.nome) === normalizeSuggestion(value));
+    const sameProfessional = normalizeSuggestion(form.profissional) === normalizeSuggestion(value);
+    const crm = suggestion?.crm ?? (sameProfessional ? form.crm : "");
+    setForm((previous) => ({ ...previous, profissional: value, crm }));
+    updateSharedData({ profissional: value, crm });
+  };
+
+  const handleInstitutionNameChange = (value: string) => {
+    const suggestion = institutions.find((item) => normalizeSuggestion(item.nome) === normalizeSuggestion(value));
+    if (suggestion) {
+      setForm((previous) => ({
+        ...previous,
+        nomeEstabelecimento: suggestion.nome,
+        cnes: suggestion.cnes,
+        enderecoEstabelecimento: suggestion.endereco,
+      }));
+      updateSharedData({
+        nomeEstabelecimento: suggestion.nome,
+        cnes: suggestion.cnes,
+        enderecoEstabelecimento: suggestion.endereco,
+      });
+      return;
+    }
+
+    setForm((previous) => ({
+      ...previous,
+      nomeEstabelecimento: value,
+      cnes: "",
+      enderecoEstabelecimento: "",
+    }));
+    updateSharedData({ nomeEstabelecimento: value, cnes: "", enderecoEstabelecimento: "" });
+  };
+
+  const handleExecutorNameChange = (value: string) => {
+    const suggestion = institutions.find((item) => normalizeSuggestion(item.nome) === normalizeSuggestion(value));
+    if (suggestion) {
+      setForm((previous) => ({
+        ...previous,
+        estabelecimentoExecutante: suggestion.nome,
+        cnesExecutante: suggestion.cnes,
+      }));
+      updateSharedData({ estabelecimentoExecutante: suggestion.nome, cnesExecutante: suggestion.cnes });
+      return;
+    }
+    setForm((previous) => ({ ...previous, estabelecimentoExecutante: value }));
+    updateSharedData({ estabelecimentoExecutante: value, cnesExecutante: form.cnesExecutante });
+  };
 
   useEffect(() => {
     return () => {
@@ -200,7 +273,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
 
     switch (documentType) {
       case "receita":
-        return `RECEITA MÉDICA\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}${establishment}\n\n${form.medicamentos.map((medication, index) => `${index + 1}. ${[medication.nome || "Medicamento não informado", medication.apresentacao].filter(Boolean).join(" ")}${medication.quantidade ? `  ---  ${medication.quantidade}` : ""}\n   ${medication.posologia}`).join("\n\n")}\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
+        return `RECEITA MÉDICA\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}${establishment}\n\n${form.prescriptionType === "compounded" ? `PRESCRIÇÃO MANIPULADA\n${form.compoundingText}` : form.medicamentos.map((medication, index) => `${index + 1}. ${[medication.nome || "Medicamento não informado", medication.apresentacao].filter(Boolean).join(" ")}${medication.quantidade ? `  ---  ${medication.quantidade}` : ""}\n   ${medication.posologia}`).join("\n\n")}\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
       case "atestado":
         return `ATESTADO MÉDICO\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}${establishment}\n\nDeclaro, por meio deste, que o paciente acima foi avaliado e necessita de afastamento por ${form.periodo}, em razão de ${form.motivo}.\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
       case "exame":
@@ -218,6 +291,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
       nomeEstabelecimento: "",
       enderecoEstabelecimento: "",
     }));
+    updateSharedData({ cnes: codigo, nomeEstabelecimento: "", enderecoEstabelecimento: "" });
     setCnesResult(null);
     setCnesMessage("");
     cnesRequestId.current += 1;
@@ -262,6 +336,11 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
           nomeEstabelecimento: data.nome,
           enderecoEstabelecimento: data.endereco,
         }));
+        updateSharedData({
+          cnes: codigo,
+          nomeEstabelecimento: data.nome,
+          enderecoEstabelecimento: data.endereco,
+        });
         setCnesMessage(
           documentType === "apac"
             ? "Estabelecimento solicitante localizado. Confira os dados antes de usar."
@@ -283,6 +362,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
       cnesExecutante: codigo,
       estabelecimentoExecutante: "",
     }));
+    updateSharedData({ cnesExecutante: codigo, estabelecimentoExecutante: "" });
     setExecutorCnesMessage("");
     executorCnesRequestId.current += 1;
     const requestId = executorCnesRequestId.current;
@@ -321,6 +401,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
         }
 
         setForm((prev) => ({ ...prev, estabelecimentoExecutante: data.nome }));
+        updateSharedData({ cnesExecutante: codigo, estabelecimentoExecutante: data.nome });
         setExecutorCnesMessage("Estabelecimento executante localizado. Confira os dados antes de usar.");
         setExecutorCnesStatus("success");
       } catch (error) {
@@ -379,7 +460,11 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
           return;
         }
         const professionalName = data.nome;
-        setForm((prev) => ({ ...prev, profissional: professionalName }));
+        const crm = normalizeSuggestion(form.profissional) === normalizeSuggestion(professionalName)
+          ? form.crm
+          : "";
+        setForm((prev) => ({ ...prev, profissional: professionalName, crm }));
+        updateSharedData({ profissional: professionalName, crm });
         setProfessionalCnsMessage(`Profissional localizado: ${professionalName}. Confira a identificação antes de usar.`);
         setProfessionalCnsStatus("success");
       } catch (error) {
@@ -457,20 +542,35 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
   return (
     <main className="min-h-screen px-4 py-8 text-slate-900 md:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
+        <datalist id="professional-suggestions">
+          {professionals.map((professional) => (
+            <option key={`${professional.nome}-${professional.crm}`} value={professional.nome} label={professional.crm ? `CRM ${professional.crm}` : undefined} />
+          ))}
+        </datalist>
+        <datalist id="institution-suggestions">
+          {institutions.map((institution) => (
+            <option key={`${institution.cnes}-${institution.nome}`} value={institution.nome} label={institution.cnes ? `CNES ${institution.cnes}` : undefined} />
+          ))}
+        </datalist>
         <header id="editor-toolbar" className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white/85 p-5 shadow-sm">
           <div>
-            <Link href="/" className="text-sm font-medium text-sky-800 hover:underline">
+            <Link href="/" className="text-sm font-medium text-red-800 hover:underline">
               ← Todos os documentos
             </Link>
             <h1 className="mt-2 text-2xl font-bold md:text-3xl">{documentTitles[documentType]}</h1>
           </div>
-          <button
-            type="button"
-            onClick={handleOpenPdf}
-            className="rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
-          >
-            Abrir PDF para visualizar / imprimir
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={clearSharedData} className="rounded-xl border border-red-300 px-4 py-3 text-sm font-semibold text-red-900 hover:bg-red-50">
+              Limpar dados compartilhados
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenPdf}
+              className="rounded-xl bg-red-700 px-5 py-3 font-semibold text-white transition hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+            >
+              Abrir PDF para visualizar / imprimir
+            </button>
+          </div>
         </header>
 
         <section className="grid gap-6 xl:grid-cols-[1.05fr_1.35fr]">
@@ -488,17 +588,22 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                   onProfessionalCnsChange={handleProfessionalCnsChange}
                   professionalCnsStatus={professionalCnsStatus}
                   professionalCnsMessage={professionalCnsMessage}
+                  onSharedFieldChange={updateDocumentField}
+                  onProfessionalNameChange={handleProfessionalNameChange}
+                  onInstitutionNameChange={handleInstitutionNameChange}
+                  onExecutorNameChange={handleExecutorNameChange}
                 />
               ) : (
                 <>
                   <h2 className="text-lg font-semibold">Dados do atendimento</h2>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <Field label="Paciente" value={form.paciente} onChange={(value) => setForm((prev) => ({ ...prev, paciente: value }))} />
-                    <Field label="Nascimento" type="date" value={form.nascimento} onChange={(value) => setForm((prev) => ({ ...prev, nascimento: value }))} />
-                    <Field label="Profissional" value={form.profissional} onChange={(value) => setForm((prev) => ({ ...prev, profissional: value }))} />
-                    <Field label="CRM" value={form.crm} onChange={(value) => setForm((prev) => ({ ...prev, crm: value }))} />
+                    <Field label="Paciente" value={form.paciente} onChange={(value) => updateDocumentField("paciente", value)} />
+                    <Field label="Nascimento" type="date" value={form.nascimento} onChange={(value) => updateDocumentField("nascimento", value)} />
+                    <Field label="Profissional" value={form.profissional} list="professional-suggestions" onChange={handleProfessionalNameChange} />
+                    <Field label="CRM" value={form.crm} onChange={(value) => updateDocumentField("crm", value)} />
                     <Field label="Cidade/estado" value={form.cidadeEstado} onChange={(value) => setForm((prev) => ({ ...prev, cidadeEstado: value }))} />
                     <Field label="Data do documento" type="date" value={form.dataDocumento || currentDate} onChange={(value) => setForm((prev) => ({ ...prev, dataDocumento: value }))} />
+                    <Field label="Estabelecimento de saúde" value={form.nomeEstabelecimento} list="institution-suggestions" onChange={handleInstitutionNameChange} />
                     <Field label="CNES" value={form.cnes} onChange={handleCnesChange} />
                   </div>
                 </>
@@ -539,6 +644,8 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                 <div className="mt-5 space-y-4">
                   <FormSection title="Logo do documento (opcional)">
                     <div className="flex flex-wrap items-center gap-4">
+                      <label className="inline-flex cursor-pointer items-center rounded-xl bg-red-700 px-4 py-2.5 font-semibold text-white transition hover:bg-red-800 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-red-600">
+                        Adicionar logo
                       <input
                         type="file"
                         accept="image/png,image/jpeg"
@@ -547,8 +654,9 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                           handleLogoChange(event.target.files?.[0]);
                           event.target.value = "";
                         }}
-                        className="text-sm"
+                          className="sr-only"
                       />
+                      </label>
                       {logo && (
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -569,7 +677,30 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                   {documentType === "receita" && (
                     <FormSection title="Medicamentos prescritos">
                       <div className="space-y-4">
-                        {form.medicamentos.map((medication, index) => (
+                        <label className="block text-sm font-medium text-slate-700">
+                          <span className="mb-2 block">Tipo de receituário</span>
+                          <select
+                            value={form.prescriptionType}
+                            onChange={(event) => setForm((previous) => ({
+                              ...previous,
+                              prescriptionType: event.target.value === "compounded" ? "compounded" : "standard",
+                            }))}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                          >
+                            <option value="standard">Medicamentos com campos estruturados</option>
+                            <option value="compounded">Medicamento manipulado — texto livre</option>
+                          </select>
+                        </label>
+                        {form.prescriptionType === "compounded" ? (
+                          <Field
+                            label="Prescrição manipulada (todos os campos em texto livre)"
+                            value={form.compoundingText}
+                            onChange={(value) => setForm((previous) => ({ ...previous, compoundingText: value }))}
+                            multiline
+                          />
+                        ) : (
+                          <>
+                          {form.medicamentos.map((medication, index) => (
                           <fieldset key={index} className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                             <div className="flex items-center justify-between gap-3">
                               <legend className="font-semibold text-slate-800">Medicamento {index + 1}</legend>
@@ -631,17 +762,30 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                               />
                             </div>
                           </fieldset>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => setForm((prev) => ({
-                            ...prev,
-                            medicamentos: [...prev.medicamentos, { nome: "", apresentacao: "", posologia: "", quantidade: "" }],
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => setForm((prev) => ({
+                              ...prev,
+                              medicamentos: [...prev.medicamentos, { nome: "", apresentacao: "", posologia: "", quantidade: "" }],
+                            }))}
+                            className="rounded-xl border border-red-700 px-4 py-2 text-sm font-semibold text-red-800 transition hover:bg-red-50"
+                          >
+                            + Adicionar medicamento
+                          </button>
+                          </>
+                        )}
+                        <PrescriptionTemplateManager
+                          prescriptionType={form.prescriptionType}
+                          medications={form.medicamentos}
+                          compoundingText={form.compoundingText}
+                          onLoad={(template) => setForm((previous) => ({
+                            ...previous,
+                            prescriptionType: template.prescriptionType,
+                            medicamentos: template.medications,
+                            compoundingText: template.compoundingText,
                           }))}
-                          className="rounded-xl border border-sky-700 px-4 py-2 text-sm font-semibold text-sky-800 transition hover:bg-sky-50"
-                        >
-                          + Adicionar medicamento
-                        </button>
+                        />
                       </div>
                     </FormSection>
                   )}
@@ -670,7 +814,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
           >
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700">Pré-visualização</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-red-700">Pré-visualização</p>
                 <h2 id="document-preview-title" className="mt-2 text-xl font-semibold">
                   {documentTitles[documentType]}
                 </h2>
@@ -688,7 +832,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
             {documentType === "apac" ? (
               <ApacPreview form={form} currentDate={currentDate} />
             ) : (
-              <div className="document-content mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm leading-7 text-slate-800 md:p-8">
+              <div className="document-content mt-5 rounded-2xl border border-red-200 border-t-4 border-t-red-700 bg-red-50/40 p-5 text-sm leading-7 text-slate-800 md:p-8">
                 {logo && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={logo.dataUrl} alt="Logo" className="mb-4 ml-auto h-16 max-w-48 object-contain" />
@@ -719,12 +863,14 @@ function Field({
   onChange,
   type = "text",
   multiline = false,
+  list,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
   multiline?: boolean;
+  list?: string;
 }) {
   return (
     <label className="block text-sm font-medium text-slate-700">
@@ -734,14 +880,15 @@ function Field({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           rows={4}
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base text-slate-800 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base text-slate-800 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-200"
         />
       ) : (
         <input
           type={type}
           value={value}
+          list={list}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base text-slate-800 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base text-slate-800 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-200"
         />
       )}
     </label>
@@ -759,6 +906,10 @@ function ApacFields({
   onProfessionalCnsChange,
   professionalCnsStatus,
   professionalCnsMessage,
+  onSharedFieldChange,
+  onProfessionalNameChange,
+  onInstitutionNameChange,
+  onExecutorNameChange,
 }: {
   form: MedicalDocumentForm;
   setForm: Dispatch<SetStateAction<MedicalDocumentForm>>;
@@ -770,9 +921,13 @@ function ApacFields({
   onProfessionalCnsChange: (value: string, shouldLookup: boolean) => void;
   professionalCnsStatus: "idle" | "loading" | "success" | "not-found" | "error";
   professionalCnsMessage: string;
+  onSharedFieldChange: (key: keyof MedicalDocumentForm, value: string) => void;
+  onProfessionalNameChange: (value: string) => void;
+  onInstitutionNameChange: (value: string) => void;
+  onExecutorNameChange: (value: string) => void;
 }) {
   const update = (key: keyof MedicalDocumentForm, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    onSharedFieldChange(key, value);
   };
 
   return (
@@ -780,7 +935,7 @@ function ApacFields({
       <h2 className="text-lg font-semibold">Laudo médico para procedimentos de alta complexidade — APAC</h2>
       <FormSection title="Identificação do estabelecimento de saúde (solicitante)">
         <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
-          <Field label="1. Nome do estabelecimento solicitante" value={form.nomeEstabelecimento} onChange={(value) => update("nomeEstabelecimento", value)} />
+          <Field label="1. Nome do estabelecimento solicitante" value={form.nomeEstabelecimento} list="institution-suggestions" onChange={onInstitutionNameChange} />
           <Field label="2. CNES" value={form.cnes} onChange={onCnesChange} />
         </div>
         <p className="mt-2 text-xs text-slate-500">Digite o CNES para consultar o cadastro público. A busca envia somente esse código.</p>
@@ -794,10 +949,11 @@ function ApacFields({
           <Field label="6. Data de nascimento" type="date" value={form.nascimento} onChange={(value) => update("nascimento", value)} />
           <label className="block text-sm font-medium text-slate-700">
             <span className="mb-2 block">7. Sexo</span>
-            <select value={form.sexo} onChange={(event) => update("sexo", event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200">
+            <select value={form.sexo} onChange={(event) => update("sexo", event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200">
               <option value="">Selecione</option>
               <option value="F">Feminino</option>
               <option value="M">Masculino</option>
+              <option value="I">Ignorado</option>
             </select>
           </label>
           <div className="md:col-span-2"><Field label="8. Nome da mãe" value={form.nomeMae} onChange={(value) => update("nomeMae", value)} /></div>
@@ -845,7 +1001,7 @@ function ApacFields({
 
       <FormSection title="Solicitação">
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="md:col-span-2"><Field label="28. Nome do profissional solicitante" value={form.profissional} onChange={(value) => update("profissional", value)} /></div>
+          <div className="md:col-span-2"><Field label="28. Nome do profissional solicitante" value={form.profissional} list="professional-suggestions" onChange={onProfessionalNameChange} /></div>
           <Field label="29. Data da solicitação" type="date" value={form.dataDocumento || currentDate} onChange={(value) => update("dataDocumento", value)} />
           <SelectField label="Documento do solicitante" value={form.documentoSolicitanteTipo} onChange={(value) => {
             update("documentoSolicitanteTipo", value);
@@ -887,7 +1043,7 @@ function ApacFields({
 
       <FormSection title="Identificação do estabelecimento de saúde (executante)">
         <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
-          <Field label="37. Nome do estabelecimento executante" value={form.estabelecimentoExecutante} onChange={(value) => update("estabelecimentoExecutante", value)} />
+          <Field label="37. Nome do estabelecimento executante" value={form.estabelecimentoExecutante} list="institution-suggestions" onChange={onExecutorNameChange} />
           <Field label="38. CNES do estabelecimento executante" value={form.cnesExecutante} onChange={onExecutorCnesChange} />
         </div>
         <p className="mt-2 text-xs text-slate-500">Informe o CNES do estabelecimento que executará o procedimento. Esta consulta é independente da consulta do estabelecimento solicitante.</p>
@@ -924,7 +1080,7 @@ function SelectField({ label, value, onChange }: { label: string; value: string;
   return (
     <label className="block text-sm font-medium text-slate-700">
       <span className="mb-2 block">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200">
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200">
         <option value="">Selecione</option>
         <option value="CNS">CNS</option>
         <option value="CPF">CPF</option>
@@ -943,9 +1099,9 @@ function SignatureLine({ label }: { label: string }) {
 
 function ApacPreview({ form, currentDate }: { form: MedicalDocumentForm; currentDate: string }) {
   return (
-    <div className="document-content apac-paper mt-5 space-y-1 rounded border border-slate-400 bg-white p-3 text-slate-900">
-      <div className="mb-2 flex items-center justify-between border-b-2 border-slate-900 pb-2">
-        <div className="font-bold">SUS<br /><span className="text-[9px] font-normal">Ministério da Saúde</span></div>
+    <div className="document-content apac-paper mt-5 space-y-1 rounded border border-red-800 bg-white p-3 text-slate-900">
+      <div className="mb-2 flex items-center justify-between border-b-2 border-red-800 pb-2">
+        <div className="font-bold text-red-800">SUS<br /><span className="text-[9px] font-normal">Ministério da Saúde</span></div>
         <h3 className="max-w-[75%] text-center text-sm font-bold uppercase">Laudo médico para procedimentos de alta complexidade — APAC</h3>
       </div>
       <ApacPreviewSection title="Identificação do estabelecimento de saúde (solicitante)">
@@ -1035,8 +1191,8 @@ function ApacPreview({ form, currentDate }: { form: MedicalDocumentForm; current
 
 function ApacPreviewSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border border-slate-400">
-      <h4 className="bg-slate-900 px-2 py-1 text-center text-[9px] font-bold uppercase tracking-wide text-white">{title}</h4>
+    <section className="border border-red-800">
+      <h4 className="bg-red-800 px-2 py-1 text-center text-[9px] font-bold uppercase tracking-wide text-white">{title}</h4>
       <div className="space-y-1 p-1">{children}</div>
     </section>
   );
@@ -1053,6 +1209,40 @@ function ApacPreviewRow({ fields, tall = false }: { fields: [string, string, str
       ))}
     </div>
   );
+}
+
+function getSharedFieldUpdate(
+  key: keyof MedicalDocumentForm,
+  value: string,
+): Partial<SharedDocumentData> | null {
+  switch (key) {
+    case "paciente":
+    case "nascimento":
+    case "numeroProntuario":
+    case "cns":
+    case "sexo":
+    case "nomeMae":
+    case "telefone":
+    case "enderecoPaciente":
+    case "municipioResidencia":
+    case "codigoIbge":
+    case "uf":
+    case "cep":
+    case "profissional":
+    case "crm":
+    case "nomeEstabelecimento":
+    case "enderecoEstabelecimento":
+    case "cnes":
+    case "estabelecimentoExecutante":
+    case "cnesExecutante":
+      return { [key]: value };
+    default:
+      return null;
+  }
+}
+
+function normalizeSuggestion(value: string) {
+  return value.trim().toLocaleLowerCase("pt-BR");
 }
 
 function formatList(value: string) {
