@@ -20,7 +20,7 @@ Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos
 - Sugestões de profissionais e estabelecimentos usados durante a sessão, com dados de paciente e profissional compartilhados entre os documentos
 - Receita de medicamento manipulado em texto livre
 - Modelos de prescrição por doença, salvos na conta e carregados com um clique
-- Login com e-mail e senha, aprovação administrativa de novas contas e revogação de acessos
+- Login com e-mail e senha, recuperação de senha por e-mail, aprovação administrativa de novas contas e revogação de acessos
 - Aviso explícito sobre privacidade e necessidade de consentimento
 - Visualização em tempo real do documento pronto para copiar e usar
 
@@ -31,6 +31,7 @@ Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos
 - `/pedido-exames` — pedido de exames
 - `/apac` — APAC
 - `/login` — login com e-mail e senha
+- `/reset-password` — criação de uma nova senha após validar o link enviado por e-mail
 - `/pending` — aviso de cadastro aguardando aprovação
 - `/atendimento-antirrabico` — preenchimento, pré-visualização, impressão e download da ficha de Atendimento Anti-Rábico Humano
 
@@ -78,7 +79,11 @@ O login e o armazenamento por conta exigem um projeto Supabase configurado:
    ```
 
 3. No Supabase Auth, mantenha o provedor Email habilitado com "Confirm email" ligado (não desligue: evita cadastro com e-mail de administrador alheio).
-4. Configure a URL do site e o callback `http://localhost:3000/auth/callback` (e a URL de produção correspondente) nas URLs de redirecionamento do Supabase e dos provedores.
+4. No Supabase Auth, configure a URL do site e inclua o callback na lista de redirecionamentos permitidos:
+   - `http://localhost:3000/auth/callback`
+   - A URL equivalente com o domínio de produção.
+
+   A recuperação de senha usa o mesmo callback com `?next=%2Freset-password`; não é necessário cadastrar uma segunda entrada para o mesmo caminho. Provedores OAuth habilitados também precisam ter o callback configurado no respectivo provedor.
 5. Os endereços `ricardobarroso.med@gmail.com`, `ricardo-barroso@hotmail.com` e `rica_bol@hotmail.com` são aprovados automaticamente e podem aceitar cadastros pendentes na página inicial. Outros emails entram como pendentes até um desses administradores aprovar.
 
 Na Vercel, configure `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` nas variáveis de ambiente do projeto e inclua o domínio de produção no site URL e nas URLs de callback permitidas do Supabase e dos provedores.
