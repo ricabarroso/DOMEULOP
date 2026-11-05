@@ -21,6 +21,7 @@ Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos
 - Receita de medicamento manipulado em texto livre
 - Modelos de prescrição por doença, salvos na conta e carregados com um clique
 - Login com e-mail e senha, recuperação de senha por e-mail, aprovação administrativa de novas contas e revogação de acessos
+- Link de recuperação compatível com abertura em outro navegador ou pelo aplicativo de e-mail do celular
 - Aviso explícito sobre privacidade e necessidade de consentimento
 - Visualização em tempo real do documento pronto para copiar e usar
 
