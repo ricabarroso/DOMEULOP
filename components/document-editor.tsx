@@ -182,6 +182,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
     savedValues,
     patients,
     updateSharedData,
+    rememberInstitution,
     clearSharedData,
     rememberValues,
     rememberCurrentPatient,
@@ -365,44 +366,35 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
   };
 
   const handleInstitutionNameChange = (value: string) => {
-    const suggestion = institutions.find((item) => normalizeSuggestion(item.nome) === normalizeSuggestion(value));
-    if (suggestion) {
-      setForm((previous) => ({
-        ...previous,
-        nomeEstabelecimento: suggestion.nome,
-        cnes: suggestion.cnes,
-        enderecoEstabelecimento: suggestion.endereco,
-      }));
-      updateSharedData({
-        nomeEstabelecimento: suggestion.nome,
-        cnes: suggestion.cnes,
-        enderecoEstabelecimento: suggestion.endereco,
-      });
+    const matches = institutions.filter((item) => normalizeSuggestion(item.nome) === normalizeSuggestion(value));
+    if (matches.length === 1) {
+      handleCnesChange(matches[0].cnes);
       return;
     }
 
+    handleCnesChange("");
     setForm((previous) => ({
       ...previous,
       nomeEstabelecimento: value,
-      cnes: "",
-      enderecoEstabelecimento: "",
     }));
-    updateSharedData({ nomeEstabelecimento: value, cnes: "", enderecoEstabelecimento: "" });
+    if (matches.length > 1) {
+      setCnesMessage("Há mais de um CNES com esse nome. Informe o código CNES correto para confirmar o endereço.");
+      setCnesStatus("idle");
+    }
   };
 
   const handleExecutorNameChange = (value: string) => {
-    const suggestion = institutions.find((item) => normalizeSuggestion(item.nome) === normalizeSuggestion(value));
-    if (suggestion) {
-      setForm((previous) => ({
-        ...previous,
-        estabelecimentoExecutante: suggestion.nome,
-        cnesExecutante: suggestion.cnes,
-      }));
-      updateSharedData({ estabelecimentoExecutante: suggestion.nome, cnesExecutante: suggestion.cnes });
+    const matches = institutions.filter((item) => normalizeSuggestion(item.nome) === normalizeSuggestion(value));
+    if (matches.length === 1) {
+      handleExecutorCnesChange(matches[0].cnes);
       return;
     }
-    setForm((previous) => ({ ...previous, estabelecimentoExecutante: value }));
-    updateSharedData({ estabelecimentoExecutante: value, cnesExecutante: form.cnesExecutante });
+    handleExecutorCnesChange("");
+    setForm((previous) => ({ ...previous, estabelecimentoExecutante: value, cnesExecutante: "" }));
+    if (matches.length > 1) {
+      setExecutorCnesMessage("Há mais de um CNES com esse nome. Informe o código CNES correto.");
+      setExecutorCnesStatus("idle");
+    }
   };
 
   useEffect(() => {
@@ -440,26 +432,12 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
 
   const handleCnesChange = (value: string) => {
     const codigo = value.replace(/\D/g, "").slice(0, 7);
-    const saved = codigo.length === 7 ? institutions.find((item) => item.cnes === codigo) : undefined;
-    if (saved) {
-      cnesRequestId.current += 1;
-      if (cnesTimer.current) clearTimeout(cnesTimer.current);
-      cnesController.current?.abort();
-      const values = { cnes: saved.cnes, nomeEstabelecimento: saved.nome, enderecoEstabelecimento: saved.endereco };
-      setForm((prev) => ({ ...prev, ...values }));
-      updateSharedData(values);
-      setCnesResult(null);
-      setCnesMessage("");
-      setCnesStatus("idle");
-      return;
-    }
     setForm((prev) => ({
       ...prev,
       cnes: codigo,
       nomeEstabelecimento: "",
       enderecoEstabelecimento: "",
     }));
-    updateSharedData({ cnes: codigo, nomeEstabelecimento: "", enderecoEstabelecimento: "" });
     setCnesResult(null);
     setCnesMessage("");
     cnesRequestId.current += 1;
@@ -497,18 +475,20 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
           setCnesStatus("error");
           return;
         }
+        if (data.codigo !== codigo) {
+          setCnesMessage("O serviço CNES retornou um estabelecimento incompatível com o código informado.");
+          setCnesStatus("error");
+          return;
+        }
 
         setCnesResult(data);
         setForm((prev) => ({
           ...prev,
+          cnes: data.codigo,
           nomeEstabelecimento: data.nome,
           enderecoEstabelecimento: data.endereco,
         }));
-        updateSharedData({
-          cnes: codigo,
-          nomeEstabelecimento: data.nome,
-          enderecoEstabelecimento: data.endereco,
-        });
+        rememberInstitution({ nome: data.nome, cnes: data.codigo, endereco: data.endereco });
         setCnesMessage(
           documentType === "apac"
             ? "Estabelecimento solicitante localizado. Confira os dados antes de usar."
@@ -525,24 +505,11 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
 
   const handleExecutorCnesChange = (value: string) => {
     const codigo = value.replace(/\D/g, "").slice(0, 7);
-    const saved = codigo.length === 7 ? institutions.find((item) => item.cnes === codigo) : undefined;
-    if (saved) {
-      executorCnesRequestId.current += 1;
-      if (executorCnesTimer.current) clearTimeout(executorCnesTimer.current);
-      executorCnesController.current?.abort();
-      const values = { cnesExecutante: saved.cnes, estabelecimentoExecutante: saved.nome };
-      setForm((prev) => ({ ...prev, ...values }));
-      updateSharedData(values);
-      setExecutorCnesMessage("");
-      setExecutorCnesStatus("idle");
-      return;
-    }
     setForm((prev) => ({
       ...prev,
       cnesExecutante: codigo,
       estabelecimentoExecutante: "",
     }));
-    updateSharedData({ cnesExecutante: codigo, estabelecimentoExecutante: "" });
     setExecutorCnesMessage("");
     executorCnesRequestId.current += 1;
     const requestId = executorCnesRequestId.current;
@@ -579,9 +546,18 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
           setExecutorCnesStatus("error");
           return;
         }
+        if (data.codigo !== codigo) {
+          setExecutorCnesMessage("O serviço CNES retornou um estabelecimento incompatível com o código informado.");
+          setExecutorCnesStatus("error");
+          return;
+        }
 
-        setForm((prev) => ({ ...prev, estabelecimentoExecutante: data.nome }));
-        updateSharedData({ cnesExecutante: codigo, estabelecimentoExecutante: data.nome });
+        setForm((prev) => ({
+          ...prev,
+          cnesExecutante: data.codigo,
+          estabelecimentoExecutante: data.nome,
+        }));
+        rememberInstitution({ nome: data.nome, cnes: data.codigo, endereco: data.endereco });
         setExecutorCnesMessage("Estabelecimento executante localizado. Confira os dados antes de usar.");
         setExecutorCnesStatus("success");
       } catch (error) {
@@ -1455,11 +1431,6 @@ function getSharedFieldUpdate(
     case "cidadeEstado":
     case "documentoSolicitanteTipo":
     case "documentoSolicitanteNumero":
-    case "nomeEstabelecimento":
-    case "enderecoEstabelecimento":
-    case "cnes":
-    case "estabelecimentoExecutante":
-    case "cnesExecutante":
       return { [key]: value };
     default:
       return null;

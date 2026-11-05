@@ -29,11 +29,6 @@ export type SharedDocumentData = {
   cidadeEstado: string;
   documentoSolicitanteTipo: string;
   documentoSolicitanteNumero: string;
-  nomeEstabelecimento: string;
-  enderecoEstabelecimento: string;
-  cnes: string;
-  estabelecimentoExecutante: string;
-  cnesExecutante: string;
 };
 
 const emptySharedData: SharedDocumentData = {
@@ -60,11 +55,6 @@ const emptySharedData: SharedDocumentData = {
   cidadeEstado: "",
   documentoSolicitanteTipo: "",
   documentoSolicitanteNumero: "",
-  nomeEstabelecimento: "",
-  enderecoEstabelecimento: "",
-  cnes: "",
-  estabelecimentoExecutante: "",
-  cnesExecutante: "",
 };
 
 export type ProfessionalSuggestion = {
@@ -243,11 +233,10 @@ export function DocumentSessionProvider({ children }: { children: ReactNode }) {
     const cnes = institution.cnes.trim();
     if (!nome || !isCompleteCnes(cnes)) return;
 
-    const existing = institutionsRef.current.find((item) => item.cnes === cnes);
     const entry = {
       nome: nome.slice(0, 200),
       cnes,
-      endereco: institution.endereco.trim() || existing?.endereco || "",
+      endereco: institution.endereco.trim(),
     };
     institutionsRef.current = [
       ...institutionsRef.current.filter((item) => item.cnes !== cnes),
@@ -376,21 +365,7 @@ export function DocumentSessionProvider({ children }: { children: ReactNode }) {
       pendingProfessionals.current.set(normalize(entry.nome), entry);
       scheduleSave();
     }
-
-    const institutionEntries: InstitutionSuggestion[] = [
-      {
-        nome: nextSharedData.nomeEstabelecimento.trim(),
-        cnes: nextSharedData.cnes.trim(),
-        endereco: nextSharedData.enderecoEstabelecimento.trim(),
-      },
-      {
-        nome: nextSharedData.estabelecimentoExecutante.trim(),
-        cnes: nextSharedData.cnesExecutante.trim(),
-        endereco: "",
-      },
-    ];
-    for (const entry of institutionEntries) rememberInstitution(entry);
-  }, [rememberInstitution]);
+  }, [scheduleSave]);
 
   const clearSharedData = useCallback(() => {
     sharedDataRef.current = emptySharedData;

@@ -114,7 +114,6 @@ export default function AntirabicoEditor() {
           notificationUnit: suggestion.nome,
           notificationCnes: suggestion.cnes,
         }));
-        rememberInstitution(suggestion);
       } else {
         setValues((current) => ({ ...current, notificationUnit: value, notificationCnes: "" }));
       }
