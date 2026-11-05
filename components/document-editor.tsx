@@ -2,12 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import type { Dispatch, ReactNode, SetStateAction } from "react";
+import type { ReactNode } from "react";
 import { createDocumentPdf, type DocumentLogo } from "@/lib/create-document-pdf";
 import {
   useDocumentSession,
 } from "@/components/document-session-provider";
-import type { ProfessionalSuggestion, SharedDocumentData } from "@/components/document-session-provider";
+import type { ProfessionalSuggestion, SavedValue, SharedDocumentData } from "@/components/document-session-provider";
+import SavedDatalists, {
+  SavedChips,
+  findSavedByDetail,
+  findSavedByValue,
+  parseSavedDetail,
+} from "@/components/saved-datalists";
 import PrescriptionTemplateManager from "@/components/prescription-template-manager";
 
 export type DocumentType = "receita" | "atestado" | "exame" | "apac";
@@ -170,8 +176,13 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
     sharedData,
     professionals,
     institutions,
+    savedValues,
+    patients,
     updateSharedData,
     clearSharedData,
+    rememberValues,
+    rememberCurrentPatient,
+    applyPatient,
   } = useDocumentSession();
   const [formState, setForm] = useState<MedicalDocumentForm>(initialForm);
   const form = useMemo(() => ({ ...formState, ...sharedData }), [formState, sharedData]);
@@ -201,6 +212,120 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
     setForm((previous) => ({ ...previous, [key]: value }));
     const sharedUpdate = getSharedFieldUpdate(key, value);
     if (sharedUpdate) updateSharedData(sharedUpdate);
+
+    if (key === "paciente" || key === "cns") {
+      const wanted = key === "cns" ? value.replace(/\D/g, "") : normalizeSuggestion(value);
+      const matches = patients.filter((patient) =>
+        key === "cns"
+          ? wanted.length === 15 && (patient.data.cns ?? "").replace(/\D/g, "") === wanted
+          : normalizeSuggestion(patient.nome) === wanted,
+      );
+      if (matches.length === 1) applyPatient(matches[0]);
+    }
+  };
+
+  const updateMedication = (index: number, key: keyof PrescriptionMedication, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      medicamentos: prev.medicamentos.map((item, itemIndex) => {
+        if (itemIndex !== index) return item;
+        const next = { ...item, [key]: value };
+        const saved = key === "nome" ? findSavedByValue(savedValues, "medicamento", value) : undefined;
+        if (saved && !item.apresentacao && !item.posologia && !item.quantidade) {
+          const detail = parseSavedDetail(saved.detail);
+          return {
+            ...next,
+            nome: saved.value,
+            apresentacao: detail.apresentacao ?? "",
+            posologia: detail.posologia ?? "",
+            quantidade: detail.quantidade ?? "",
+          };
+        }
+        return next;
+      }),
+    }));
+  };
+
+  const updateProcedure = (index: number, key: keyof ApacProcedure, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      procedimentos: prev.procedimentos.map((item, itemIndex) => {
+        if (itemIndex !== index) return item;
+        const next = { ...item, [key]: value };
+        if (key === "nome") {
+          const saved = findSavedByValue(savedValues, "procedimento", value);
+          if (saved && !item.codigo) return { ...next, nome: saved.value, codigo: saved.detail };
+        }
+        if (key === "codigo") {
+          const saved = findSavedByDetail(savedValues, "procedimento", value);
+          if (saved && !item.nome) return { ...next, codigo: saved.detail, nome: saved.value };
+        }
+        return next;
+      }),
+    }));
+  };
+
+  const updateDiagnosis = (key: "diagnostico" | "cidPrincipal", value: string) => {
+    if (key === "diagnostico") {
+      const saved = findSavedByValue(savedValues, "diagnostico", value);
+      if (saved && !form.cidPrincipal) {
+        updateDocumentField("diagnostico", saved.value);
+        updateDocumentField("cidPrincipal", saved.detail);
+        return;
+      }
+    } else {
+      const saved = findSavedByValue(savedValues, "cid", value);
+      if (saved && !form.diagnostico) {
+        updateDocumentField("cidPrincipal", saved.value);
+        updateDocumentField("diagnostico", saved.detail);
+        return;
+      }
+    }
+    updateDocumentField(key, value);
+  };
+
+  const appendSavedLine = (key: "exames" | "examesComplementares", line: string) => {
+    const current = form[key];
+    const lines = current.split(/\r?\n/).map((item) => item.trim());
+    if (lines.some((item) => normalizeSuggestion(item) === normalizeSuggestion(line))) return;
+    setForm((prev) => ({ ...prev, [key]: current.trim() ? `${current.replace(/\s+$/, "")}\n${line}` : line }));
+  };
+
+  const commitSavedEntries = () => {
+    rememberCurrentPatient();
+    const entries: SavedValue[] = [];
+    const addLines = (text: string) => {
+      for (const line of text.split(/\r?\n|;/)) {
+        const cleaned = line.replace(/^[\s\-•*\d.)]+/, "").trim();
+        if (cleaned.length >= 3 && cleaned.length <= 300) entries.push({ field: "exame", value: cleaned, detail: "" });
+      }
+    };
+
+    if (documentType === "receita" && form.prescriptionType === "standard") {
+      for (const medication of form.medicamentos) {
+        if (!medication.nome.trim()) continue;
+        entries.push({
+          field: "medicamento",
+          value: medication.nome,
+          detail: JSON.stringify({
+            apresentacao: medication.apresentacao,
+            posologia: medication.posologia,
+            quantidade: medication.quantidade,
+          }),
+        });
+      }
+    }
+    if (documentType === "exame") addLines(form.exames);
+    if (isApac) {
+      addLines(form.examesComplementares);
+      for (const procedure of form.procedimentos) {
+        if (procedure.nome.trim()) entries.push({ field: "procedimento", value: procedure.nome, detail: procedure.codigo.trim() });
+      }
+      if (form.diagnostico.trim()) entries.push({ field: "diagnostico", value: form.diagnostico, detail: form.cidPrincipal.trim() });
+      if (form.cidPrincipal.trim()) entries.push({ field: "cid", value: form.cidPrincipal, detail: form.diagnostico.trim() });
+      if (form.cidSecundario.trim()) entries.push({ field: "cid", value: form.cidSecundario, detail: "" });
+    }
+    rememberValues(entries);
   };
 
   const applyProfessional = (suggestion: ProfessionalSuggestion) => {
@@ -592,8 +717,9 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
   };
 
   return (
-    <main className="min-h-screen px-4 py-8 text-slate-900 md:px-8">
+    <main className="min-h-screen px-4 py-8 text-slate-900 md:px-8" onBlur={commitSavedEntries}>
       <div className="mx-auto max-w-7xl space-y-6">
+        <SavedDatalists />
         <datalist id="professional-suggestions">
           {professionals.map((professional) => (
             <option key={`${professional.nome}-${professional.crm}`} value={professional.nome} label={professional.crm ? `CRM ${professional.crm}` : undefined} />
@@ -666,7 +792,6 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
               {documentType === "apac" ? (
                 <ApacFields
                   form={form}
-                  setForm={setForm}
                   currentDate={currentDate}
                   onCnesChange={handleCnesChange}
                   onExecutorCnesChange={handleExecutorCnesChange}
@@ -679,12 +804,15 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                   onProfessionalNameChange={handleProfessionalNameChange}
                   onInstitutionNameChange={handleInstitutionNameChange}
                   onExecutorNameChange={handleExecutorNameChange}
+                  onProcedureChange={updateProcedure}
+                  onDiagnosisChange={updateDiagnosis}
+                  onAppendSavedLine={appendSavedLine}
                 />
               ) : (
                 <>
                   <h2 className="text-lg font-semibold">Dados do atendimento</h2>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <Field label="Paciente" value={form.paciente} onChange={(value) => updateDocumentField("paciente", value)} accent="green" />
+                    <Field label="Paciente" value={form.paciente} list="patient-name-suggestions" onChange={(value) => updateDocumentField("paciente", value)} accent="green" />
                     <Field label="Nascimento" type="date" value={form.nascimento} onChange={(value) => updateDocumentField("nascimento", value)} accent="green" />
                     <Field label="Profissional" value={form.profissional} list="professional-suggestions" onChange={handleProfessionalNameChange} accent="green" />
                     <Field label="CRM" value={form.crm} list="crm-suggestions" onChange={handleCrmChange} accent="green" />
@@ -810,46 +938,29 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                               <Field
                                 label="Nome do medicamento"
                                 value={medication.nome}
-                                onChange={(value) => setForm((prev) => ({
-                                  ...prev,
-                                  medicamentos: prev.medicamentos.map((item, itemIndex) =>
-                                    itemIndex === index ? { ...item, nome: value } : item,
-                                  ),
-                                }))}
+                                list="saved-medicamento"
+                                onChange={(value) => updateMedication(index, "nome", value)}
                                 accent="green"
                               />
                               <Field
                                 label="Apresentação / concentração (ex.: 500 mg)"
                                 value={medication.apresentacao}
-                                onChange={(value) => setForm((prev) => ({
-                                  ...prev,
-                                  medicamentos: prev.medicamentos.map((item, itemIndex) =>
-                                    itemIndex === index ? { ...item, apresentacao: value } : item,
-                                  ),
-                                }))}
+                                list="saved-medicamento-apresentacao"
+                                onChange={(value) => updateMedication(index, "apresentacao", value)}
                                 accent="green"
                               />
                               <Field
                                 label="Posologia e modo de usar"
                                 value={medication.posologia}
-                                onChange={(value) => setForm((prev) => ({
-                                  ...prev,
-                                  medicamentos: prev.medicamentos.map((item, itemIndex) =>
-                                    itemIndex === index ? { ...item, posologia: value } : item,
-                                  ),
-                                }))}
+                                onChange={(value) => updateMedication(index, "posologia", value)}
                                 multiline
                                 accent="green"
                               />
                               <Field
                                 label="Quantidade a dispensar (ex.: 1 caixa)"
                                 value={medication.quantidade}
-                                onChange={(value) => setForm((prev) => ({
-                                  ...prev,
-                                  medicamentos: prev.medicamentos.map((item, itemIndex) =>
-                                    itemIndex === index ? { ...item, quantidade: value } : item,
-                                  ),
-                                }))}
+                                list="saved-medicamento-quantidade"
+                                onChange={(value) => updateMedication(index, "quantidade", value)}
                                 accent="green"
                               />
                             </div>
@@ -890,7 +1001,10 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                   {documentType === "exame" && (
                     <>
                       <Field label="Motivo da solicitação" value={form.motivo} onChange={(value) => setForm((prev) => ({ ...prev, motivo: value }))} multiline accent="green" />
-                      <Field label="Exames solicitados" value={form.exames} onChange={(value) => setForm((prev) => ({ ...prev, exames: value }))} multiline accent="green" />
+                      <div>
+                        <Field label="Exames solicitados" value={form.exames} onChange={(value) => setForm((prev) => ({ ...prev, exames: value }))} multiline accent="green" />
+                        <SavedChips field="exame" label="Exames usados antes (toque para adicionar)" onPick={(value) => appendSavedLine("exames", value)} />
+                      </div>
                     </>
                   )}
                   <Field label="Observações" value={form.observacoes} onChange={(value) => setForm((prev) => ({ ...prev, observacoes: value }))} multiline accent="green" />
@@ -994,7 +1108,6 @@ function Field({
 
 function ApacFields({
   form,
-  setForm,
   currentDate,
   onCnesChange,
   onExecutorCnesChange,
@@ -1007,9 +1120,11 @@ function ApacFields({
   onProfessionalNameChange,
   onInstitutionNameChange,
   onExecutorNameChange,
+  onProcedureChange,
+  onDiagnosisChange,
+  onAppendSavedLine,
 }: {
   form: MedicalDocumentForm;
-  setForm: Dispatch<SetStateAction<MedicalDocumentForm>>;
   currentDate: string;
   onCnesChange: (value: string) => void;
   onExecutorCnesChange: (value: string) => void;
@@ -1022,6 +1137,9 @@ function ApacFields({
   onProfessionalNameChange: (value: string) => void;
   onInstitutionNameChange: (value: string) => void;
   onExecutorNameChange: (value: string) => void;
+  onProcedureChange: (index: number, key: keyof ApacProcedure, value: string) => void;
+  onDiagnosisChange: (key: "diagnostico" | "cidPrincipal", value: string) => void;
+  onAppendSavedLine: (key: "exames" | "examesComplementares", line: string) => void;
 }) {
   const update = (key: keyof MedicalDocumentForm, value: string) => {
     onSharedFieldChange(key, value);
@@ -1040,9 +1158,9 @@ function ApacFields({
 
       <FormSection title="Identificação do paciente">
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="md:col-span-2"><Field label="3. Nome do paciente" value={form.paciente} onChange={(value) => update("paciente", value)} /></div>
+          <div className="md:col-span-2"><Field label="3. Nome do paciente" value={form.paciente} list="patient-name-suggestions" onChange={(value) => update("paciente", value)} /></div>
           <Field label="4. Nº do prontuário" value={form.numeroProntuario} onChange={(value) => update("numeroProntuario", value)} />
-          <Field label="5. Cartão Nacional de Saúde (CNS)" value={form.cns} onChange={(value) => update("cns", value)} />
+          <Field label="5. Cartão Nacional de Saúde (CNS)" value={form.cns} list="patient-cns-suggestions" onChange={(value) => update("cns", value)} />
           <Field label="6. Data de nascimento" type="date" value={form.nascimento} onChange={(value) => update("nascimento", value)} />
           <label className="block text-sm font-medium text-slate-700">
             <span className="mb-2 block">7. Sexo</span>
@@ -1067,18 +1185,9 @@ function ApacFields({
         <div className="space-y-4">
           {form.procedimentos.map((procedure, index) => (
             <div key={index} className="grid gap-3 rounded-xl border border-slate-200 p-3 md:grid-cols-[1fr_2fr_0.5fr]">
-              <Field label={`18. Código do procedimento ${index + 1}`} value={procedure.codigo} onChange={(value) => setForm((prev) => ({
-                ...prev,
-                procedimentos: prev.procedimentos.map((item, itemIndex) => itemIndex === index ? { ...item, codigo: value } : item),
-              }))} />
-              <Field label={`19. Nome do procedimento ${index + 1}`} value={procedure.nome} onChange={(value) => setForm((prev) => ({
-                ...prev,
-                procedimentos: prev.procedimentos.map((item, itemIndex) => itemIndex === index ? { ...item, nome: value } : item),
-              }))} />
-              <Field label={`20. Quantidade ${index + 1}`} type="number" value={procedure.quantidade} onChange={(value) => setForm((prev) => ({
-                ...prev,
-                procedimentos: prev.procedimentos.map((item, itemIndex) => itemIndex === index ? { ...item, quantidade: value } : item),
-              }))} />
+              <Field label={`18. Código do procedimento ${index + 1}`} value={procedure.codigo} list="saved-procedimento-codigo" onChange={(value) => onProcedureChange(index, "codigo", value)} />
+              <Field label={`19. Nome do procedimento ${index + 1}`} value={procedure.nome} list="saved-procedimento-nome" onChange={(value) => onProcedureChange(index, "nome", value)} />
+              <Field label={`20. Quantidade ${index + 1}`} type="number" value={procedure.quantidade} onChange={(value) => onProcedureChange(index, "quantidade", value)} />
             </div>
           ))}
         </div>
@@ -1086,12 +1195,15 @@ function ApacFields({
 
       <FormSection title="Justificativa do(s) procedimento(s) solicitado(s)">
         <div className="grid gap-4 md:grid-cols-4">
-          <div className="md:col-span-4"><Field label="21. Descrição do diagnóstico" value={form.diagnostico} onChange={(value) => update("diagnostico", value)} /></div>
-          <Field label="22. CID principal" value={form.cidPrincipal} onChange={(value) => update("cidPrincipal", value)} />
-          <Field label="23. CID secundário" value={form.cidSecundario} onChange={(value) => update("cidSecundario", value)} />
-          <div className="md:col-span-2"><Field label="24. CID causas associadas" value={form.cidAssociados} onChange={(value) => update("cidAssociados", value)} /></div>
+          <div className="md:col-span-4"><Field label="21. Descrição do diagnóstico" value={form.diagnostico} list="saved-diagnostico" onChange={(value) => onDiagnosisChange("diagnostico", value)} /></div>
+          <Field label="22. CID principal" value={form.cidPrincipal} list="saved-cid" onChange={(value) => onDiagnosisChange("cidPrincipal", value)} />
+          <Field label="23. CID secundário" value={form.cidSecundario} list="saved-cid" onChange={(value) => update("cidSecundario", value)} />
+          <div className="md:col-span-2"><Field label="24. CID causas associadas" value={form.cidAssociados} list="saved-cid" onChange={(value) => update("cidAssociados", value)} /></div>
           <div className="md:col-span-4"><Field label="25. Resumo da anamnese e exame físico" value={form.anamnese} onChange={(value) => update("anamnese", value)} multiline /></div>
-          <div className="md:col-span-4"><Field label="26. Exames complementares realizados" value={form.examesComplementares} onChange={(value) => update("examesComplementares", value)} multiline /></div>
+          <div className="md:col-span-4">
+            <Field label="26. Exames complementares realizados" value={form.examesComplementares} onChange={(value) => update("examesComplementares", value)} multiline />
+            <SavedChips field="exame" label="Exames usados antes (toque para adicionar)" onPick={(value) => onAppendSavedLine("examesComplementares", value)} />
+          </div>
           <div className="md:col-span-4"><Field label="27. Justificativa do procedimento" value={form.justificativaApac} onChange={(value) => update("justificativaApac", value)} multiline /></div>
         </div>
       </FormSection>

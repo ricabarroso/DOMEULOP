@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useDocumentSession } from "@/components/document-session-provider";
+import SavedDatalists, { findSavedByValue, normalizeSaved, parseSavedDetail } from "@/components/saved-datalists";
 import {
   antirabicoSections,
   initialAntirabicoValues,
@@ -15,7 +16,16 @@ import { createAntirabicoPdf } from "@/lib/create-antirabico-pdf";
 const originalPdfUrl = "/atendimento-antirrabico.pdf";
 
 export default function AntirabicoEditor() {
-  const { sharedData, institutions, updateSharedData } = useDocumentSession();
+  const {
+    sharedData,
+    institutions,
+    patients,
+    savedValues,
+    updateSharedData,
+    rememberValues,
+    rememberCurrentPatient,
+    applyPatient,
+  } = useDocumentSession();
   const [localValues, setValues] = useState<AntirabicoValues>(initialAntirabicoValues);
   const values: AntirabicoValues = useMemo(() => ({
     ...localValues,
@@ -116,6 +126,30 @@ export default function AntirabicoEditor() {
 
     if (key === "notificationCnes") setCnesMessage("");
     setValues((current) => ({ ...current, [key]: value }));
+
+    if ((key === "patientName" || key === "patientCns") && typeof value === "string") {
+      const wanted = key === "patientCns" ? value.replace(/\D/g, "") : normalizeSaved(value);
+      const matches = patients.filter((patient) =>
+        key === "patientCns"
+          ? wanted.length === 15 && (patient.data.cns ?? "").replace(/\D/g, "") === wanted
+          : normalizeSaved(patient.nome) === wanted,
+      );
+      if (matches.length === 1) applyPatient(matches[0]);
+    }
+
+    if (key === "investigatorName" && typeof value === "string") {
+      const saved = findSavedByValue(savedValues, "investigador", value);
+      if (saved) {
+        const detail = parseSavedDetail(saved.detail);
+        setValues((current) => ({
+          ...current,
+          investigatorName: saved.value,
+          investigatorRole: detail.role ?? current.investigatorRole,
+          investigatorUnit: detail.unit ?? current.investigatorUnit,
+          investigatorUnitCode: detail.code ?? current.investigatorUnitCode,
+        }));
+      }
+    }
     if (typeof value === "string") {
       switch (key) {
         case "patientName":
@@ -193,8 +227,49 @@ export default function AntirabicoEditor() {
     }
   };
 
+  const commitSavedEntries = () => {
+    rememberCurrentPatient();
+    const name = typeof values.investigatorName === "string" ? values.investigatorName.trim() : "";
+    if (name.length >= 3) {
+      const text = (key: string) => (typeof values[key] === "string" ? (values[key] as string).trim() : "");
+      rememberValues([
+        {
+          field: "investigador",
+          value: name,
+          detail: JSON.stringify({
+            role: text("investigatorRole"),
+            unit: text("investigatorUnit"),
+            code: text("investigatorUnitCode"),
+          }),
+        },
+      ]);
+    }
+  };
+
+  const savedListFor = (key: string) => {
+    switch (key) {
+      case "notificationUnit":
+        return "antirabico-institution-suggestions";
+      case "patientName":
+        return "patient-name-suggestions";
+      case "patientCns":
+        return "patient-cns-suggestions";
+      case "investigatorName":
+        return "saved-investigador";
+      case "investigatorRole":
+        return "saved-investigador-funcao";
+      case "investigatorUnit":
+        return "saved-investigador-unidade";
+      case "investigatorUnitCode":
+        return "saved-investigador-codigo";
+      default:
+        return undefined;
+    }
+  };
+
   return (
-    <main className="min-h-screen px-4 py-8 text-slate-900 md:px-8">
+    <main className="min-h-screen px-4 py-8 text-slate-900 md:px-8" onBlur={commitSavedEntries}>
+      <SavedDatalists />
       <div className="mx-auto max-w-7xl space-y-6">
         <header className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
           <Link href="/" className="text-sm font-semibold text-red-800 hover:underline">
@@ -203,8 +278,9 @@ export default function AntirabicoEditor() {
           <h1 className="mt-3 text-2xl font-bold md:text-3xl">Atendimento Anti-Rábico Humano</h1>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
             Preencha os campos conforme a ficha original. Ao gerar, os dados são colocados sobre o PDF original,
-            preservando o formulário para visualizar, imprimir ou baixar. O preenchimento permanece no navegador
-            e não é enviado ao CNES nem persistido pela aplicação.
+            preservando o formulário para visualizar, imprimir ou baixar. O PDF é gerado localmente no navegador
+            e o CNS do paciente não é enviado ao CNES. Paciente, unidade e investigador ficam salvos na sua conta
+            para preenchimento rápido.
           </p>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             A ficha informa “2 — Individual” e o código CID-10 “W64”. O arquivo original indica SVS — 27/09/2005;
@@ -234,7 +310,7 @@ export default function AntirabicoEditor() {
                       field={field}
                       value={values[field.key] ?? (field.type === "checkboxes" ? [] : "")}
                       disabled={isGenerating}
-                      list={field.key === "notificationUnit" ? "antirabico-institution-suggestions" : undefined}
+                      list={savedListFor(field.key)}
                       onChange={(value) => updateValue(field.key, value)}
                     />
                   ))}
