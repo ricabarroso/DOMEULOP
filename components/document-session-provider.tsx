@@ -106,6 +106,7 @@ type DocumentSessionContextValue = {
   savedValues: SavedValue[];
   patients: SavedPatient[];
   updateSharedData: (values: Partial<SharedDocumentData>) => void;
+  rememberInstitution: (institution: InstitutionSuggestion) => void;
   clearSharedData: () => void;
   rememberValues: (entries: SavedValue[]) => void;
   rememberCurrentPatient: () => void;
@@ -142,6 +143,7 @@ export function DocumentSessionProvider({ children }: { children: ReactNode }) {
   const sharedDataRef = useRef(sharedData);
   const [professionals, setProfessionals] = useState<ProfessionalSuggestion[]>([]);
   const [institutions, setInstitutions] = useState<InstitutionSuggestion[]>([]);
+  const institutionsRef = useRef<InstitutionSuggestion[]>([]);
   const [savedValues, setSavedValues] = useState<SavedValue[]>([]);
   const [patients, setPatients] = useState<SavedPatient[]>([]);
   const patientsRef = useRef<SavedPatient[]>([]);
@@ -236,6 +238,26 @@ export function DocumentSessionProvider({ children }: { children: ReactNode }) {
     }, 800);
   }, [flushSaves]);
 
+  const rememberInstitution = useCallback((institution: InstitutionSuggestion) => {
+    const nome = institution.nome.trim();
+    const cnes = institution.cnes.trim();
+    if (!nome || !isCompleteCnes(cnes)) return;
+
+    const existing = institutionsRef.current.find((item) => item.cnes === cnes);
+    const entry = {
+      nome: nome.slice(0, 200),
+      cnes,
+      endereco: institution.endereco.trim() || existing?.endereco || "",
+    };
+    institutionsRef.current = [
+      ...institutionsRef.current.filter((item) => item.cnes !== cnes),
+      entry,
+    ];
+    setInstitutions(institutionsRef.current);
+    pendingInstitutions.current.set(cnes, entry);
+    scheduleSave();
+  }, [scheduleSave]);
+
   useEffect(() => {
     let supabase: ReturnType<typeof createClient>;
     try {
@@ -249,6 +271,7 @@ export function DocumentSessionProvider({ children }: { children: ReactNode }) {
       if (!userId) {
         setProfessionals([]);
         setInstitutions([]);
+        institutionsRef.current = [];
         setSavedValues([]);
         setPatients([]);
         return;
@@ -280,13 +303,13 @@ export function DocumentSessionProvider({ children }: { children: ReactNode }) {
           documentoNumero: row.documento_numero,
         })),
       );
-      setInstitutions(
-        (institutionResult.data ?? []).map((row) => ({
-          nome: row.nome,
-          cnes: row.cnes,
-          endereco: row.endereco,
-        })),
-      );
+      const loadedInstitutions = (institutionResult.data ?? []).map((row) => ({
+        nome: row.nome,
+        cnes: row.cnes,
+        endereco: row.endereco,
+      }));
+      institutionsRef.current = loadedInstitutions;
+      setInstitutions(loadedInstitutions);
     };
 
     void supabase.auth.getUser().then(({ data }) => loadSaved(data.user?.id ?? null));
@@ -366,17 +389,8 @@ export function DocumentSessionProvider({ children }: { children: ReactNode }) {
         endereco: "",
       },
     ];
-    for (const entry of institutionEntries) {
-      if (!entry.nome || !isCompleteCnes(entry.cnes)) continue;
-      setInstitutions((previous) => {
-        const existing = previous.find((item) => item.cnes === entry.cnes);
-        const merged = { ...entry, endereco: entry.endereco || existing?.endereco || "" };
-        return [...previous.filter((item) => item.cnes !== entry.cnes), merged];
-      });
-      pendingInstitutions.current.set(entry.cnes, entry);
-      scheduleSave();
-    }
-  }, [scheduleSave]);
+    for (const entry of institutionEntries) rememberInstitution(entry);
+  }, [rememberInstitution]);
 
   const clearSharedData = useCallback(() => {
     sharedDataRef.current = emptySharedData;
@@ -452,6 +466,7 @@ export function DocumentSessionProvider({ children }: { children: ReactNode }) {
     savedValues,
     patients,
     updateSharedData,
+    rememberInstitution,
     clearSharedData,
     rememberValues,
     rememberCurrentPatient,
@@ -463,6 +478,7 @@ export function DocumentSessionProvider({ children }: { children: ReactNode }) {
     savedValues,
     patients,
     updateSharedData,
+    rememberInstitution,
     clearSharedData,
     rememberValues,
     rememberCurrentPatient,

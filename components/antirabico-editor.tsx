@@ -23,6 +23,7 @@ export default function AntirabicoEditor() {
     patients,
     savedValues,
     updateSharedData,
+    rememberInstitution,
     rememberValues,
     rememberCurrentPatient,
     applyPatient,
@@ -45,8 +46,6 @@ export default function AntirabicoEditor() {
     residenceIbge: sharedData.codigoIbge,
     residenceState: sharedData.uf,
     cep: sharedData.cep,
-    notificationUnit: sharedData.nomeEstabelecimento,
-    notificationCnes: sharedData.cnes,
   }), [localValues, sharedData]);
   const [filledPdfUrl, setFilledPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +83,11 @@ export default function AntirabicoEditor() {
 
         const nome = data.nome.slice(0, 80);
         setValues((current) => ({ ...current, notificationUnit: nome }));
-        updateSharedData({ nomeEstabelecimento: nome, cnes });
+        rememberInstitution({
+          nome,
+          cnes,
+          endereco: "endereco" in data && typeof data.endereco === "string" ? data.endereco : "",
+        });
         setFilledPdfUrl(null);
         setCnesMessage("Estabelecimento localizado. Confira os dados da unidade.");
       } catch (lookupError) {
@@ -98,7 +101,7 @@ export default function AntirabicoEditor() {
     };
     void lookupInstitution();
     return () => controller.abort();
-  }, [cnes, updateSharedData]);
+  }, [cnes, rememberInstitution]);
 
   const updateValue = (key: string, value: AntirabicoValue) => {
     if (key === "notificationUnit" && typeof value === "string") {
@@ -111,14 +114,9 @@ export default function AntirabicoEditor() {
           notificationUnit: suggestion.nome,
           notificationCnes: suggestion.cnes,
         }));
-        updateSharedData({
-          nomeEstabelecimento: suggestion.nome,
-          cnes: suggestion.cnes,
-          enderecoEstabelecimento: suggestion.endereco,
-        });
+        rememberInstitution(suggestion);
       } else {
         setValues((current) => ({ ...current, notificationUnit: value, notificationCnes: "" }));
-        updateSharedData({ nomeEstabelecimento: value, cnes: "", enderecoEstabelecimento: "" });
       }
       setFilledPdfUrl(null);
       setError(null);
@@ -199,7 +197,6 @@ export default function AntirabicoEditor() {
           updateSharedData({ cep: value });
           break;
         case "notificationCnes":
-          updateSharedData({ cnes: value, nomeEstabelecimento: "" });
           setValues((current) => ({ ...current, notificationUnit: "" }));
           break;
       }
