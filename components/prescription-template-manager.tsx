@@ -167,10 +167,10 @@ export default function PrescriptionTemplateManager({
   };
 
   return (
-    <section className="space-y-4 rounded-2xl border border-red-200 bg-red-50/70 p-4">
+    <section className="space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
       <div>
-        <h3 className="font-semibold text-red-950">Modelos de prescrição por doença</h3>
-        <p className="mt-1 text-sm leading-5 text-red-900">
+        <h3 className="font-semibold text-emerald-950">Modelos de prescrição por doença</h3>
+        <p className="mt-1 text-sm leading-5 text-emerald-900">
           Salvos na sua conta; contêm somente o nome da doença e a prescrição, nunca dados de pacientes.
         </p>
       </div>
@@ -181,14 +181,14 @@ export default function PrescriptionTemplateManager({
             value={disease}
             onChange={(event) => setDisease(event.target.value)}
             maxLength={120}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-base text-slate-800 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-base text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
           />
         </label>
         <button
           type="button"
           disabled={saving}
           onClick={() => void saveTemplate()}
-          className="self-end rounded-xl bg-red-700 px-4 py-2 font-semibold text-white hover:bg-red-800 disabled:cursor-wait disabled:opacity-60"
+          className="self-end rounded-xl bg-emerald-700 px-4 py-2 font-semibold text-white hover:bg-emerald-800 disabled:cursor-wait disabled:opacity-60"
         >
           {saving ? "Salvando…" : "Salvar modelo"}
         </button>
@@ -205,7 +205,7 @@ export default function PrescriptionTemplateManager({
                 <button
                   type="button"
                   onClick={() => openTemplate(template)}
-                  className="rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-900 hover:bg-red-100"
+                  className="rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-medium text-emerald-900 hover:bg-emerald-100"
                 >
                   {template.disease} — abrir
                 </button>
