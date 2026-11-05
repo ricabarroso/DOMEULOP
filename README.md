@@ -15,7 +15,7 @@ Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos
 - Consulta automática do estabelecimento pelo código CNES
 - Páginas dedicadas para cada tipo de documento
 - Modelos PDF com seções visuais para receita, atestado e pedido de exames; a APAC mantém sua estrutura de campos
-- Layout dos documentos em vermelho, com opção de incluir logo PNG/JPEG
+- Layout das receitas, atestados e pedidos de exames em verde-claro, com opção de incluir logo PNG/JPEG
 - Geração de PDF no navegador com abertura da visualização em nova aba
 - Sugestões de profissionais e estabelecimentos usados durante a sessão, com dados de paciente e profissional compartilhados entre os documentos
 - Receita de medicamento manipulado em texto livre
