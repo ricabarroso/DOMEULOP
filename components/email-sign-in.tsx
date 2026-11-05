@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type Mode = "signin" | "signup";
+type Mode = "signin" | "signup" | "reset";
 
 export default function EmailSignIn() {
   const [mode, setMode] = useState<Mode>("signin");
@@ -22,9 +22,13 @@ export default function EmailSignIn() {
           ? "Não foi possível verificar a aprovação da conta. Tente novamente ou contate um administrador."
           : code === "auth-check"
             ? "Não foi possível validar sua sessão. Entre novamente."
+            : code === "recovery"
+              ? "O link de recuperação expirou ou já foi usado. Solicite outro."
+              : code === "password-updated"
+                ? "Senha alterada. Entre com a nova senha."
             : code
-              ? "O login não foi concluído. Tente novamente."
-              : "";
+                ? "O login não foi concluído. Tente novamente."
+                : "";
       setError(errorMessage);
     }, 0);
     return () => window.clearTimeout(timer);
@@ -37,6 +41,15 @@ export default function EmailSignIn() {
     setLoading(true);
     try {
       const supabase = createClient();
+      if (mode === "reset") {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth/callback?next=%2Freset-password`,
+        });
+        if (resetError) throw resetError;
+        setNotice("Se houver uma conta com esse e-mail, enviaremos um link para redefinir a senha.");
+        return;
+      }
+
       if (mode === "signup") {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
@@ -88,35 +101,56 @@ export default function EmailSignIn() {
           className={inputClass}
         />
       </label>
-      <label className="block space-y-1 text-sm font-semibold text-slate-700">
-        Senha
-        <input
-          type="password"
-          required
-          minLength={8}
-          autoComplete={mode === "signup" ? "new-password" : "current-password"}
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          className={inputClass}
-        />
-      </label>
+      {mode !== "reset" && (
+        <label className="block space-y-1 text-sm font-semibold text-slate-700">
+          Senha
+          <input
+            type="password"
+            required
+            minLength={8}
+            autoComplete={mode === "signup" ? "new-password" : "current-password"}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className={inputClass}
+          />
+        </label>
+      )}
       <button
         type="submit"
         disabled={loading}
         className="w-full rounded-xl bg-red-700 px-5 py-3 font-semibold text-white transition hover:bg-red-800 disabled:cursor-wait disabled:opacity-60"
       >
-        {loading ? "Aguarde…" : mode === "signup" ? "Criar conta" : "Entrar"}
+        {loading
+          ? "Aguarde…"
+          : mode === "signup"
+            ? "Criar conta"
+            : mode === "reset"
+              ? "Enviar link de recuperação"
+              : "Entrar"}
       </button>
+      {mode === "signin" && (
+        <button
+          type="button"
+          onClick={() => {
+            setMode("reset");
+            setError("");
+            setNotice("");
+          }}
+          className="w-full text-sm font-semibold text-red-800 hover:underline"
+        >
+          Esqueci minha senha
+        </button>
+      )}
       <button
         type="button"
         onClick={() => {
-          setMode(mode === "signin" ? "signup" : "signin");
+          setMode(mode === "signup" ? "signin" : "signup");
           setError("");
           setNotice("");
         }}
         className="w-full text-sm font-semibold text-red-800 hover:underline"
       >
-        {mode === "signin" ? "Ainda não tenho conta" : "Já tenho conta"}
+        {mode === "signup" ? "Já tenho conta" : "Voltar para entrar"}
       </button>
       {notice && (
         <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
