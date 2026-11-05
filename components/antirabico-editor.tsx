@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useDocumentSession } from "@/components/document-session-provider";
 import SavedDatalists, { findSavedByValue, normalizeSaved, parseSavedDetail } from "@/components/saved-datalists";
+import SisregImportButton from "@/components/sisreg-import-button";
 import {
   antirabicoSections,
   initialAntirabicoValues,
@@ -286,6 +287,9 @@ export default function AntirabicoEditor() {
             A ficha informa “2 — Individual” e o código CID-10 “W64”. O arquivo original indica SVS — 27/09/2005;
             confirme a versão e as orientações vigentes antes de usar.
           </p>
+          <div className="mt-3">
+            <SisregImportButton onImport={updateSharedData} />
+          </div>
         </header>
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)]">

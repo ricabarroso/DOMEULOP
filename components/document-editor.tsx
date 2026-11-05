@@ -15,6 +15,7 @@ import SavedDatalists, {
   parseSavedDetail,
 } from "@/components/saved-datalists";
 import PrescriptionTemplateManager from "@/components/prescription-template-manager";
+import SisregImportButton from "@/components/sisreg-import-button";
 
 export type DocumentType = "receita" | "atestado" | "exame" | "apac";
 type ApacProcedure = { codigo: string; nome: string; quantidade: string };
@@ -807,10 +808,14 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                   onProcedureChange={updateProcedure}
                   onDiagnosisChange={updateDiagnosis}
                   onAppendSavedLine={appendSavedLine}
+                  onImportPatient={updateSharedData}
                 />
               ) : (
                 <>
-                  <h2 className="text-lg font-semibold">Dados do atendimento</h2>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-lg font-semibold">Dados do atendimento</h2>
+                    <SisregImportButton onImport={updateSharedData} />
+                  </div>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <Field label="Paciente" value={form.paciente} list="patient-name-suggestions" onChange={(value) => updateDocumentField("paciente", value)} accent="green" />
                     <Field label="Nascimento" type="date" value={form.nascimento} onChange={(value) => updateDocumentField("nascimento", value)} accent="green" />
@@ -1123,6 +1128,7 @@ function ApacFields({
   onProcedureChange,
   onDiagnosisChange,
   onAppendSavedLine,
+  onImportPatient,
 }: {
   form: MedicalDocumentForm;
   currentDate: string;
@@ -1140,6 +1146,7 @@ function ApacFields({
   onProcedureChange: (index: number, key: keyof ApacProcedure, value: string) => void;
   onDiagnosisChange: (key: "diagnostico" | "cidPrincipal", value: string) => void;
   onAppendSavedLine: (key: "exames" | "examesComplementares", line: string) => void;
+  onImportPatient: (data: Partial<SharedDocumentData>) => void;
 }) {
   const update = (key: keyof MedicalDocumentForm, value: string) => {
     onSharedFieldChange(key, value);
@@ -1157,6 +1164,7 @@ function ApacFields({
       </FormSection>
 
       <FormSection title="Identificação do paciente">
+        <div className="mb-3"><SisregImportButton onImport={onImportPatient} /></div>
         <div className="grid gap-4 md:grid-cols-3">
           <div className="md:col-span-2"><Field label="3. Nome do paciente" value={form.paciente} list="patient-name-suggestions" onChange={(value) => update("paciente", value)} /></div>
           <Field label="4. Nº do prontuário" value={form.numeroProntuario} onChange={(value) => update("numeroProntuario", value)} />
