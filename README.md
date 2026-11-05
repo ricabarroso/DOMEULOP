@@ -68,6 +68,7 @@ Nada é enviado a um servidor nesse processo: o favorito roda inteiramente no na
 - Os modelos de prescrição persistidos contêm somente doença/diagnóstico e dados da prescrição. Eles são vinculados à conta autenticada e protegidos por políticas RLS para que cada usuário acesse somente os próprios modelos.
 - O login é fornecido pelo Supabase Auth com e-mail e senha (confirmação de e-mail obrigatória). Os três endereços autorizados abaixo têm acesso imediato e podem aprovar novos cadastros ou revogar o acesso de outras contas; outros usuários aguardam aprovação.
 - A página de atendimento antirrábico não consulta nem transmite dados clínicos; a ficha preenchida é gerada localmente no navegador e não é salva pela aplicação.
+- A unidade notificadora e o CNES da ficha antirrábica são independentes do estabelecimento usado em receitas, atestados, pedidos de exames e APAC.
 - A consulta de CNS é somente para identificar profissionais na fonte pública do CNES; dados de pacientes não são pesquisados nem enviados a esse serviço.
 - O uso de CNES e CNS deve seguir as regras de acesso e privacidade da instituição.
 
