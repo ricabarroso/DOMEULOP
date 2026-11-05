@@ -16,8 +16,9 @@ export default function LoginPage() {
         </div>
         <EmailSignIn />
         <p className="text-xs leading-5 text-slate-500">
-          Os modelos de prescrição salvos ficam vinculados à sua conta. Dados de pacientes e profissionais
-          não são enviados ao Supabase e permanecem apenas na sessão desta página.
+          Os modelos de prescrição e os dados usados nos documentos (pacientes, prescritores, estabelecimentos,
+          medicamentos e exames) ficam salvos na sua conta, protegidos por regras de acesso por usuário, para
+          preenchimento rápido. O CNS do paciente não é enviado ao CNES.
         </p>
       </section>
     </main>
