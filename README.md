@@ -82,6 +82,7 @@ O login e o armazenamento por conta exigem um projeto Supabase configurado:
 3. No Supabase Auth, mantenha o provedor Email habilitado com "Confirm email" ligado (não desligue: evita cadastro com e-mail de administrador alheio).
    - Configure um servidor SMTP próprio em **Authentication → SMTP Settings** para cadastro e recuperação de senha em produção. O serviço de e-mail padrão do Supabase limita o projeto a 2 e-mails por hora, compartilhados entre cadastro e recuperação; trocar de endereço não contorna esse limite. Consulte os [limites de autenticação do Supabase](https://supabase.com/docs/guides/auth/rate-limits).
    - Aplique também a migração `supabase/migrations/20261105000000_account_saved_entries.sql`: ela guarda, por conta, os prescritores (nome, CRM, cidade/estado, CNS ou CPF) e os estabelecimentos (CNES, nome, endereço) usados, que aparecem como listas de seleção rápida nos campos.
+   - Aplique ainda `supabase/migrations/20261105010000_account_saved_values.sql`: guarda, por conta, pacientes (nome, CNS, mãe, endereço, telefone), medicamentos, exames, procedimentos (código↔nome), diagnósticos↔CID e investigador do antirrábico. O CNS do paciente continua sem ir ao CNES e o PDF antirrábico continua sendo gerado localmente.
 4. No Supabase Auth, configure a URL do site e inclua o callback na lista de redirecionamentos permitidos:
    - `http://localhost:3000/auth/callback`
    - `http://localhost:3000/reset-password`
