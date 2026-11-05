@@ -44,6 +44,8 @@ Nas páginas editáveis, preencha e confira a pré-visualização. Na página an
 
 Ao informar os 7 dígitos do CNES, a aplicação consulta a API pública de Dados Abertos do Ministério da Saúde e mostra nome, endereço e CEP do estabelecimento, quando disponíveis.
 
+O nome e o endereço são confirmados novamente pela API para o CNES informado; endereços de listas salvas não são usados para preencher documentos. Instituições selecionadas em um documento não substituem a instituição de outro documento. Se um nome corresponder a mais de um CNES, informe o código correto antes de usar o endereço.
+
 Na página APAC, solicitante e executante são estabelecimentos independentes e têm campos e consultas CNES separados. A consulta de um não preenche nem altera os dados do outro. Escolher CNS como documento do profissional solicitante e informar 15 dígitos consulta a busca pública de profissionais do CNES (`/services/profissionais?cns=...`). Quando localizado, o nome do profissional é preenchido para conferência. A consulta é limitada ao CNS do profissional no cadastro público do CNES; o CNS do paciente permanece no formulário e no PDF, sem ser enviado para a API. A geração do PDF também acontece localmente no navegador.
 
 ## Importação de dados do paciente pelo SISREG
