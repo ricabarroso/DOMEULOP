@@ -42,7 +42,11 @@ export default function SisregImportButton({ onImport }: SisregImportButtonProps
           <p className="mt-1">
             Arraste o link abaixo para a barra de favoritos do navegador:{" "}
             <a
-              href={SISREG_BOOKMARKLET_HREF}
+              href="#sisreg-favorito"
+              ref={(node) => {
+                // O React bloqueia javascript: em props; definir no DOM permite arrastar o favorito.
+                node?.setAttribute("href", SISREG_BOOKMARKLET_HREF);
+              }}
               draggable
               onClick={(event) => event.preventDefault()}
               className="rounded border border-sky-400 bg-sky-50 px-2 py-1 font-medium text-sky-800"
