@@ -165,6 +165,7 @@ function isCnesLookup(value: unknown): value is CnesLookup {
 }
 
 export default function DocumentEditor({ documentType }: { documentType: DocumentType }) {
+  const isApac = documentType === "apac";
   const {
     sharedData,
     professionals,
@@ -554,19 +555,34 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
         </datalist>
         <header id="editor-toolbar" className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white/85 p-5 shadow-sm">
           <div>
-            <Link href="/" className="text-sm font-medium text-red-800 hover:underline">
+            <Link
+              href="/"
+              className={`text-sm font-medium ${isApac ? "text-red-800" : "text-emerald-800"} hover:underline`}
+            >
               ← Todos os documentos
             </Link>
             <h1 className="mt-2 text-2xl font-bold md:text-3xl">{documentTitles[documentType]}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={clearSharedData} className="rounded-xl border border-red-300 px-4 py-3 text-sm font-semibold text-red-900 hover:bg-red-50">
+            <button
+              type="button"
+              onClick={clearSharedData}
+              className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
+                isApac
+                  ? "border-red-300 text-red-900 hover:bg-red-50"
+                  : "border-emerald-300 text-emerald-900 hover:bg-emerald-50"
+              }`}
+            >
               Limpar dados compartilhados
             </button>
             <button
               type="button"
               onClick={handleOpenPdf}
-              className="rounded-xl bg-red-700 px-5 py-3 font-semibold text-white transition hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+              className={`rounded-xl px-5 py-3 font-semibold text-white transition focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                isApac
+                  ? "bg-red-700 hover:bg-red-800 focus-visible:outline-red-600"
+                  : "bg-emerald-700 hover:bg-emerald-800 focus-visible:outline-emerald-600"
+              }`}
             >
               Abrir PDF para visualizar / imprimir
             </button>
@@ -597,14 +613,14 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                 <>
                   <h2 className="text-lg font-semibold">Dados do atendimento</h2>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <Field label="Paciente" value={form.paciente} onChange={(value) => updateDocumentField("paciente", value)} />
-                    <Field label="Nascimento" type="date" value={form.nascimento} onChange={(value) => updateDocumentField("nascimento", value)} />
-                    <Field label="Profissional" value={form.profissional} list="professional-suggestions" onChange={handleProfessionalNameChange} />
-                    <Field label="CRM" value={form.crm} onChange={(value) => updateDocumentField("crm", value)} />
-                    <Field label="Cidade/estado" value={form.cidadeEstado} onChange={(value) => setForm((prev) => ({ ...prev, cidadeEstado: value }))} />
-                    <Field label="Data do documento" type="date" value={form.dataDocumento || currentDate} onChange={(value) => setForm((prev) => ({ ...prev, dataDocumento: value }))} />
-                    <Field label="Estabelecimento de saúde" value={form.nomeEstabelecimento} list="institution-suggestions" onChange={handleInstitutionNameChange} />
-                    <Field label="CNES" value={form.cnes} onChange={handleCnesChange} />
+                    <Field label="Paciente" value={form.paciente} onChange={(value) => updateDocumentField("paciente", value)} accent="green" />
+                    <Field label="Nascimento" type="date" value={form.nascimento} onChange={(value) => updateDocumentField("nascimento", value)} accent="green" />
+                    <Field label="Profissional" value={form.profissional} list="professional-suggestions" onChange={handleProfessionalNameChange} accent="green" />
+                    <Field label="CRM" value={form.crm} onChange={(value) => updateDocumentField("crm", value)} accent="green" />
+                    <Field label="Cidade/estado" value={form.cidadeEstado} onChange={(value) => setForm((prev) => ({ ...prev, cidadeEstado: value }))} accent="green" />
+                    <Field label="Data do documento" type="date" value={form.dataDocumento || currentDate} onChange={(value) => setForm((prev) => ({ ...prev, dataDocumento: value }))} accent="green" />
+                    <Field label="Estabelecimento de saúde" value={form.nomeEstabelecimento} list="institution-suggestions" onChange={handleInstitutionNameChange} accent="green" />
+                    <Field label="CNES" value={form.cnes} onChange={handleCnesChange} accent="green" />
                   </div>
                 </>
               )}
@@ -644,7 +660,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                 <div className="mt-5 space-y-4">
                   <FormSection title="Logo do documento (opcional)">
                     <div className="flex flex-wrap items-center gap-4">
-                      <label className="inline-flex cursor-pointer items-center rounded-xl bg-red-700 px-4 py-2.5 font-semibold text-white transition hover:bg-red-800 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-red-600">
+                      <label className="inline-flex cursor-pointer items-center rounded-xl bg-emerald-700 px-4 py-2.5 font-semibold text-white transition hover:bg-emerald-800 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-emerald-600">
                         Adicionar logo
                       <input
                         type="file"
@@ -664,7 +680,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                           <button
                             type="button"
                             onClick={() => setLogo(null)}
-                            className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+                            className="rounded-lg border border-emerald-200 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
                           >
                             Remover logo
                           </button>
@@ -685,7 +701,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                               ...previous,
                               prescriptionType: event.target.value === "compounded" ? "compounded" : "standard",
                             }))}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                           >
                             <option value="standard">Medicamentos com campos estruturados</option>
                             <option value="compounded">Medicamento manipulado — texto livre</option>
@@ -697,6 +713,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                             value={form.compoundingText}
                             onChange={(value) => setForm((previous) => ({ ...previous, compoundingText: value }))}
                             multiline
+                            accent="green"
                           />
                         ) : (
                           <>
@@ -711,7 +728,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                                     ...prev,
                                     medicamentos: prev.medicamentos.filter((_, itemIndex) => itemIndex !== index),
                                   }))}
-                                  className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+                                  className="rounded-lg border border-emerald-200 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
                                   aria-label={`Remover medicamento ${index + 1}`}
                                 >
                                   Remover
@@ -728,6 +745,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                                     itemIndex === index ? { ...item, nome: value } : item,
                                   ),
                                 }))}
+                                accent="green"
                               />
                               <Field
                                 label="Apresentação / concentração (ex.: 500 mg)"
@@ -738,6 +756,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                                     itemIndex === index ? { ...item, apresentacao: value } : item,
                                   ),
                                 }))}
+                                accent="green"
                               />
                               <Field
                                 label="Posologia e modo de usar"
@@ -749,6 +768,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                                   ),
                                 }))}
                                 multiline
+                                accent="green"
                               />
                               <Field
                                 label="Quantidade a dispensar (ex.: 1 caixa)"
@@ -759,6 +779,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                                     itemIndex === index ? { ...item, quantidade: value } : item,
                                   ),
                                 }))}
+                                accent="green"
                               />
                             </div>
                           </fieldset>
@@ -769,7 +790,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                               ...prev,
                               medicamentos: [...prev.medicamentos, { nome: "", apresentacao: "", posologia: "", quantidade: "" }],
                             }))}
-                            className="rounded-xl border border-red-700 px-4 py-2 text-sm font-semibold text-red-800 transition hover:bg-red-50"
+                            className="rounded-xl border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
                           >
                             + Adicionar medicamento
                           </button>
@@ -791,17 +812,17 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                   )}
                   {documentType === "atestado" && (
                     <>
-                      <Field label="Período de afastamento" value={form.periodo} onChange={(value) => setForm((prev) => ({ ...prev, periodo: value }))} />
-                      <Field label="Motivo / justificativa" value={form.motivo} onChange={(value) => setForm((prev) => ({ ...prev, motivo: value }))} multiline />
+                      <Field label="Período de afastamento" value={form.periodo} onChange={(value) => setForm((prev) => ({ ...prev, periodo: value }))} accent="green" />
+                      <Field label="Motivo / justificativa" value={form.motivo} onChange={(value) => setForm((prev) => ({ ...prev, motivo: value }))} multiline accent="green" />
                     </>
                   )}
                   {documentType === "exame" && (
                     <>
-                      <Field label="Motivo da solicitação" value={form.motivo} onChange={(value) => setForm((prev) => ({ ...prev, motivo: value }))} multiline />
-                      <Field label="Exames solicitados" value={form.exames} onChange={(value) => setForm((prev) => ({ ...prev, exames: value }))} multiline />
+                      <Field label="Motivo da solicitação" value={form.motivo} onChange={(value) => setForm((prev) => ({ ...prev, motivo: value }))} multiline accent="green" />
+                      <Field label="Exames solicitados" value={form.exames} onChange={(value) => setForm((prev) => ({ ...prev, exames: value }))} multiline accent="green" />
                     </>
                   )}
-                  <Field label="Observações" value={form.observacoes} onChange={(value) => setForm((prev) => ({ ...prev, observacoes: value }))} multiline />
+                  <Field label="Observações" value={form.observacoes} onChange={(value) => setForm((prev) => ({ ...prev, observacoes: value }))} multiline accent="green" />
                 </div>
               )}
             </div>
@@ -814,7 +835,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
           >
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-red-700">Pré-visualização</p>
+                <p className={`text-sm font-semibold uppercase tracking-[0.2em] ${isApac ? "text-red-700" : "text-emerald-700"}`}>Pré-visualização</p>
                 <h2 id="document-preview-title" className="mt-2 text-xl font-semibold">
                   {documentTitles[documentType]}
                 </h2>
@@ -832,7 +853,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
             {documentType === "apac" ? (
               <ApacPreview form={form} currentDate={currentDate} />
             ) : (
-              <div className="document-content mt-5 rounded-2xl border border-red-200 border-t-4 border-t-red-700 bg-red-50/40 p-5 text-sm leading-7 text-slate-800 md:p-8">
+              <div className="document-content mt-5 rounded-2xl border border-emerald-200 border-t-4 border-t-emerald-600 bg-emerald-50/70 p-5 text-sm leading-7 text-slate-800 md:p-8">
                 {logo && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={logo.dataUrl} alt="Logo" className="mb-4 ml-auto h-16 max-w-48 object-contain" />
@@ -864,6 +885,7 @@ function Field({
   type = "text",
   multiline = false,
   list,
+  accent = "red",
 }: {
   label: string;
   value: string;
@@ -871,7 +893,11 @@ function Field({
   type?: string;
   multiline?: boolean;
   list?: string;
+  accent?: "red" | "green";
 }) {
+  const focusClasses = accent === "green"
+    ? "focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+    : "focus:border-red-500 focus:ring-2 focus:ring-red-200";
   return (
     <label className="block text-sm font-medium text-slate-700">
       <span className="mb-2 block">{label}</span>
@@ -880,7 +906,7 @@ function Field({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           rows={4}
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base text-slate-800 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-200"
+          className={`w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base text-slate-800 outline-none transition ${focusClasses}`}
         />
       ) : (
         <input
@@ -888,7 +914,7 @@ function Field({
           value={value}
           list={list}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base text-slate-800 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-200"
+          className={`w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base text-slate-800 outline-none transition ${focusClasses}`}
         />
       )}
     </label>
