@@ -209,7 +209,7 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm,
       y += cardHeight + 3;
       });
     }
-    if (form.observacoes) textBlock("Observações", form.observacoes);
+    textBlock("Observações", form.observacoes.trim() || "Nada consta");
   } else if (type === "atestado") {
     section("Atestado");
     infoRow([{ label: "Período de afastamento", value: form.periodo, ratio: 1 }]);
@@ -219,7 +219,7 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm,
       "Declaro que o(a) paciente acima identificado(a) foi avaliado(a) e necessita de afastamento pelo período informado.",
       { fontSize: 10 },
     );
-    if (form.observacoes) textBlock("Observações", form.observacoes);
+    textBlock("Observações", form.observacoes.trim() || "Nada consta");
   } else {
     section("Solicitação de exames");
     textBlock("Motivo / indicação clínica", form.motivo, { fontSize: 10 });
@@ -227,7 +227,7 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm,
     exams.forEach((exam, index) => {
       textBlock(`${index + 1}. EXAME SOLICITADO`, exam, { fontSize: 10 });
     });
-    if (form.observacoes) textBlock("Observações", form.observacoes);
+    textBlock("Observações", form.observacoes.trim() || "Nada consta");
   }
 
   const footerHeight = 31;
