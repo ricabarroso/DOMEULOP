@@ -45,6 +45,66 @@ export type Database = {
         };
         Relationships: [];
       };
+      saved_professionals: {
+        Row: {
+          id: string;
+          user_id: string;
+          entry_key: string;
+          nome: string;
+          crm: string;
+          cidade_estado: string;
+          documento_tipo: string;
+          documento_numero: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          entry_key: string;
+          nome: string;
+          crm?: string;
+          cidade_estado?: string;
+          documento_tipo?: string;
+          documento_numero?: string;
+          updated_at?: string;
+        };
+        Update: {
+          nome?: string;
+          crm?: string;
+          cidade_estado?: string;
+          documento_tipo?: string;
+          documento_numero?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      saved_institutions: {
+        Row: {
+          id: string;
+          user_id: string;
+          entry_key: string;
+          nome: string;
+          cnes: string;
+          endereco: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          entry_key: string;
+          nome: string;
+          cnes?: string;
+          endereco?: string;
+          updated_at?: string;
+        };
+        Update: {
+          nome?: string;
+          cnes?: string;
+          endereco?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
