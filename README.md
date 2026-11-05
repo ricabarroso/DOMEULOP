@@ -81,9 +81,10 @@ O login e o armazenamento por conta exigem um projeto Supabase configurado:
 3. No Supabase Auth, mantenha o provedor Email habilitado com "Confirm email" ligado (não desligue: evita cadastro com e-mail de administrador alheio).
 4. No Supabase Auth, configure a URL do site e inclua o callback na lista de redirecionamentos permitidos:
    - `http://localhost:3000/auth/callback`
+   - `http://localhost:3000/reset-password`
    - A URL equivalente com o domínio de produção.
 
-   A recuperação de senha usa o mesmo callback com `?next=%2Freset-password`; não é necessário cadastrar uma segunda entrada para o mesmo caminho. Provedores OAuth habilitados também precisam ter o callback configurado no respectivo provedor.
+   Provedores OAuth habilitados também precisam ter o callback configurado no respectivo provedor.
 5. Os endereços `ricardobarroso.med@gmail.com`, `ricardo-barroso@hotmail.com` e `rica_bol@hotmail.com` são aprovados automaticamente e podem aceitar cadastros pendentes na página inicial. Outros emails entram como pendentes até um desses administradores aprovar.
 
 Na Vercel, configure `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` nas variáveis de ambiente do projeto e inclua o domínio de produção no site URL e nas URLs de callback permitidas do Supabase e dos provedores.
