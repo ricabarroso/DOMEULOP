@@ -46,6 +46,7 @@ export type MedicalDocumentForm = {
   enderecoEstabelecimento: string;
   numeroProntuario: string;
   cns: string;
+  cpf: string;
   sexo: string;
   nomeMae: string;
   telefone: string;
@@ -121,6 +122,7 @@ const initialForm: MedicalDocumentForm = {
   enderecoEstabelecimento: "",
   numeroProntuario: "",
   cns: "",
+  cpf: "",
   sexo: "",
   nomeMae: "",
   telefone: "",
@@ -422,14 +424,15 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
       : form.cnes
         ? `\nCNES: ${form.cnes}`
         : "";
+    const cpfLine = form.cpf ? `\nCPF: ${form.cpf}` : "";
 
     switch (documentType) {
       case "receita":
-        return `RECEITA MÉDICA\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}${establishment}\n\n${form.prescriptionType === "compounded" ? `PRESCRIÇÃO MANIPULADA\n${form.compoundingText}` : form.medicamentos.map((medication, index) => `${index + 1}. ${[medication.nome || "Medicamento não informado", medication.apresentacao].filter(Boolean).join(" ")}${medication.quantidade ? `  ---  ${medication.quantidade}` : ""}\n   ${medication.posologia}`).join("\n\n")}\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
+        return `RECEITA MÉDICA\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}${cpfLine}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}${establishment}\n\n${form.prescriptionType === "compounded" ? `PRESCRIÇÃO MANIPULADA\n${form.compoundingText}` : form.medicamentos.map((medication, index) => `${index + 1}. ${[medication.nome || "Medicamento não informado", medication.apresentacao].filter(Boolean).join(" ")}${medication.quantidade ? `  ---  ${medication.quantidade}` : ""}\n   ${medication.posologia}`).join("\n\n")}\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
       case "atestado":
-        return `ATESTADO MÉDICO\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}${establishment}\n\nDeclaro, por meio deste, que o paciente acima foi avaliado e necessita de afastamento por ${form.periodo}, em razão de ${form.motivo}.\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
+        return `ATESTADO MÉDICO\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}${cpfLine}\n\nProfissional: ${form.profissional}\nCRM: ${form.crm}${establishment}\n\nDeclaro, por meio deste, que o paciente acima foi avaliado e necessita de afastamento por ${form.periodo}, em razão de ${form.motivo}.\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
       case "exame":
-        return `PEDIDO DE EXAME\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}\n\nSolicitante: ${form.profissional}\nCRM: ${form.crm}${establishment}\n\nMotivo da solicitação: ${form.motivo}\nExames solicitados:\n${formatList(form.exames)}\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
+        return `PEDIDO DE EXAME\n\nPaciente: ${form.paciente}\nData de nascimento: ${formatDate(form.nascimento)}${cpfLine}\n\nSolicitante: ${form.profissional}\nCRM: ${form.crm}${establishment}\n\nMotivo da solicitação: ${form.motivo}\nExames solicitados:\n${formatList(form.exames)}\n\nObservações: ${form.observacoes}\n\nCidade/estado: ${form.cidadeEstado}\nData: ${formattedDate}\nAssinatura e carimbo do profissional.`;
       case "apac":
         return `LAUDO MÉDICO PARA PROCEDIMENTOS DE ALTA COMPLEXIDADE - APAC\n\nIDENTIFICAÇÃO DO ESTABELECIMENTO DE SAÚDE (SOLICITANTE)\n1. Nome: ${form.nomeEstabelecimento}\n2. CNES: ${form.cnes}\n\nIDENTIFICAÇÃO DO PACIENTE\n3. Nome: ${form.paciente}\n4. Nº prontuário: ${form.numeroProntuario}\n5. CNS: ${form.cns}\n6. Data de nascimento: ${form.nascimento ? formatDate(form.nascimento) : ""}\n7. Sexo: ${form.sexo}\n8. Nome da mãe: ${form.nomeMae}\n9. Telefone: ${form.telefone}\n10. Endereço: ${form.enderecoPaciente}\n11. Município: ${form.municipioResidencia}\n15. Código IBGE: ${form.codigoIbge}  16. UF: ${form.uf}  17. CEP: ${form.cep}\n\nPROCEDIMENTO SOLICITADO\n${form.procedimentos.map((item, index) => `${index + 1}. Código ${item.codigo} — ${item.nome} — Qtd. ${item.quantidade}`).join("\n")}\n\nJUSTIFICATIVA DO(S) PROCEDIMENTO(S) SOLICITADO(S)\n21. Diagnóstico: ${form.diagnostico}\n22. CID principal: ${form.cidPrincipal}  23. Secundário: ${form.cidSecundario}  24. Associados: ${form.cidAssociados}\n25. Resumo da anamnese e exame físico: ${form.anamnese}\n26. Exames complementares realizados: ${form.examesComplementares}\n27. Justificativa do procedimento: ${form.justificativaApac}\n\nSOLICITAÇÃO\n28. Profissional solicitante: ${form.profissional}\n29. Data: ${formattedDate}\nDocumento ${form.documentoSolicitanteTipo}: ${form.documentoSolicitanteNumero}\n\nAUTORIZAÇÃO\n31. Profissional autorizador: ${form.profissionalAutorizador}\n32. Código do órgão emissor: ${form.codigoOrgaoEmissor}\n33. Número da autorização APAC: ${form.numeroAutorizacao}\nDocumento ${form.documentoAutorizadorTipo}: ${form.documentoAutorizadorNumero}\n34. Data da autorização: ${form.dataAutorizacao ? formatDate(form.dataAutorizacao) : ""}\n36. Validade: ${form.validadeInicio ? formatMonth(form.validadeInicio) : ""} até ${form.validadeFim ? formatMonth(form.validadeFim) : ""}\n\nIDENTIFICAÇÃO DO ESTABELECIMENTO DE SAÚDE (EXECUTANTE)\n37. Nome: ${form.estabelecimentoExecutante}\n38. CNES: ${form.cnesExecutante}`;
     }
@@ -819,6 +822,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <Field label="Paciente" value={form.paciente} list="patient-name-suggestions" onChange={(value) => updateDocumentField("paciente", value)} accent="green" />
                     <Field label="Nascimento" type="date" value={form.nascimento} onChange={(value) => updateDocumentField("nascimento", value)} accent="green" />
+                    <Field label="CPF do paciente" value={form.cpf} onChange={(value) => updateDocumentField("cpf", formatCpf(value))} accent="green" />
                     <Field label="Profissional" value={form.profissional} list="professional-suggestions" onChange={handleProfessionalNameChange} accent="green" />
                     <Field label="CRM" value={form.crm} list="crm-suggestions" onChange={handleCrmChange} accent="green" />
                     <Field label="Cidade/estado" value={form.cidadeEstado} list="city-suggestions" onChange={(value) => updateDocumentField("cidadeEstado", value)} accent="green" />
@@ -1437,6 +1441,7 @@ function getSharedFieldUpdate(
     case "nascimento":
     case "numeroProntuario":
     case "cns":
+    case "cpf":
     case "sexo":
     case "nomeMae":
     case "telefone":
@@ -1478,6 +1483,14 @@ function formatDate(value: string) {
   if (!value) return "Não informado";
   const parsed = new Date(`${value}T00:00:00`);
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString("pt-BR");
+}
+
+function formatCpf(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  return digits
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
 }
 
 function formatMonth(value: string) {

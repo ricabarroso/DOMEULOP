@@ -10,6 +10,7 @@ export type SharedDocumentData = {
   nascimento: string;
   numeroProntuario: string;
   cns: string;
+  cpf: string;
   sexo: string;
   nomeMae: string;
   telefone: string;
@@ -40,6 +41,7 @@ const emptySharedData: SharedDocumentData = {
   nascimento: "",
   numeroProntuario: "",
   cns: "",
+  cpf: "",
   sexo: "",
   nomeMae: "",
   telefone: "",
@@ -81,6 +83,7 @@ const patientFieldKeys = [
   "nascimento",
   "numeroProntuario",
   "cns",
+  "cpf",
   "sexo",
   "nomeMae",
   "telefone",
