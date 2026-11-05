@@ -21,6 +21,12 @@ function toIsoDate(brDate: string): string {
   return `${year}-${month}-${day}`;
 }
 
+function formatCpfDigits(text: string): string {
+  const digits = text.replace(/\D/g, "");
+  if (digits.length !== 11) return "";
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
 function normalizeSexo(text: string): string {
   const value = clean(text).toUpperCase();
   if (value.startsWith("M")) return "M";
@@ -60,6 +66,7 @@ export function parseSisregPayload(raw: string): SisregImportResult | null {
     paciente: nome,
     nascimento: toIsoDate(String(parsed.nascimento ?? "")),
     cns: clean(parsed.cns).replace(/\D/g, ""),
+    cpf: formatCpfDigits(clean(parsed.cpf)),
     sexo: normalizeSexo(String(parsed.sexo ?? "")),
     nomeMae: clean(parsed.nomeMae),
     telefone: clean(parsed.telefone),
@@ -136,6 +143,7 @@ export const SISREG_BOOKMARKLET_SOURCE = `(function(){
   var phoneMatch = allText.match(/\\((\\d{2})\\)\\s*(\\d{4,5}-\\d{4})/);
   var data = {
     cns: get("CNS:").replace(/\\D/g, ""),
+    cpf: get("CPF:").replace(/\\D/g, ""),
     nome: get("Nome:"),
     nomeMae: get("Nome da Mãe:"),
     sexo: get("Sexo:"),

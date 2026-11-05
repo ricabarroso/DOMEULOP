@@ -162,6 +162,7 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm,
     { label: "Paciente", value: form.paciente, ratio: 0.7 },
     { label: "Data de nascimento", value: form.nascimento ? formatDate(form.nascimento) : "", ratio: 0.3 },
   ]);
+  if (form.cpf) infoRow([{ label: "CPF do paciente", value: form.cpf, ratio: 1 }]);
   section(type === "exame" ? "Profissional solicitante" : "Profissional responsável");
   infoRow([
     { label: type === "exame" ? "Solicitante" : "Profissional", value: form.profissional, ratio: 0.68 },
