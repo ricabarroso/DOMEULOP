@@ -7,7 +7,7 @@ import { createDocumentPdf, type DocumentLogo } from "@/lib/create-document-pdf"
 import {
   useDocumentSession,
 } from "@/components/document-session-provider";
-import type { SharedDocumentData } from "@/components/document-session-provider";
+import type { ProfessionalSuggestion, SharedDocumentData } from "@/components/document-session-provider";
 import PrescriptionTemplateManager from "@/components/prescription-template-manager";
 
 export type DocumentType = "receita" | "atestado" | "exame" | "apac";
@@ -203,12 +203,37 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
     if (sharedUpdate) updateSharedData(sharedUpdate);
   };
 
+  const applyProfessional = (suggestion: ProfessionalSuggestion) => {
+    const values = {
+      profissional: suggestion.nome,
+      crm: suggestion.crm,
+      cidadeEstado: suggestion.cidadeEstado,
+      documentoSolicitanteTipo: suggestion.documentoTipo,
+      documentoSolicitanteNumero: suggestion.documentoNumero,
+    };
+    setForm((previous) => ({ ...previous, ...values }));
+    updateSharedData(values);
+  };
+
   const handleProfessionalNameChange = (value: string) => {
     const suggestion = professionals.find((item) => normalizeSuggestion(item.nome) === normalizeSuggestion(value));
+    if (suggestion) {
+      applyProfessional(suggestion);
+      return;
+    }
     const sameProfessional = normalizeSuggestion(form.profissional) === normalizeSuggestion(value);
-    const crm = suggestion?.crm ?? (sameProfessional ? form.crm : "");
+    const crm = sameProfessional ? form.crm : "";
     setForm((previous) => ({ ...previous, profissional: value, crm }));
     updateSharedData({ profissional: value, crm });
+  };
+
+  const handleCrmChange = (value: string) => {
+    const suggestion = professionals.find((item) => item.crm && normalizeSuggestion(item.crm) === normalizeSuggestion(value));
+    if (suggestion) {
+      applyProfessional(suggestion);
+      return;
+    }
+    updateDocumentField("crm", value);
   };
 
   const handleInstitutionNameChange = (value: string) => {
@@ -286,6 +311,19 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
 
   const handleCnesChange = (value: string) => {
     const codigo = value.replace(/\D/g, "").slice(0, 7);
+    const saved = codigo.length === 7 ? institutions.find((item) => item.cnes === codigo) : undefined;
+    if (saved) {
+      cnesRequestId.current += 1;
+      if (cnesTimer.current) clearTimeout(cnesTimer.current);
+      cnesController.current?.abort();
+      const values = { cnes: saved.cnes, nomeEstabelecimento: saved.nome, enderecoEstabelecimento: saved.endereco };
+      setForm((prev) => ({ ...prev, ...values }));
+      updateSharedData(values);
+      setCnesResult(null);
+      setCnesMessage("");
+      setCnesStatus("idle");
+      return;
+    }
     setForm((prev) => ({
       ...prev,
       cnes: codigo,
@@ -358,6 +396,18 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
 
   const handleExecutorCnesChange = (value: string) => {
     const codigo = value.replace(/\D/g, "").slice(0, 7);
+    const saved = codigo.length === 7 ? institutions.find((item) => item.cnes === codigo) : undefined;
+    if (saved) {
+      executorCnesRequestId.current += 1;
+      if (executorCnesTimer.current) clearTimeout(executorCnesTimer.current);
+      executorCnesController.current?.abort();
+      const values = { cnesExecutante: saved.cnes, estabelecimentoExecutante: saved.nome };
+      setForm((prev) => ({ ...prev, ...values }));
+      updateSharedData(values);
+      setExecutorCnesMessage("");
+      setExecutorCnesStatus("idle");
+      return;
+    }
     setForm((prev) => ({
       ...prev,
       cnesExecutante: codigo,
@@ -418,6 +468,7 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
   const handleProfessionalCnsChange = (value: string, shouldLookup: boolean) => {
     const cns = value.replace(/\D/g, "").slice(0, 15);
     setForm((prev) => ({ ...prev, documentoSolicitanteNumero: cns }));
+    updateSharedData({ documentoSolicitanteNumero: cns });
     professionalCnsRequestId.current += 1;
     const requestId = professionalCnsRequestId.current;
     if (professionalCnsTimer.current) clearTimeout(professionalCnsTimer.current);
@@ -553,6 +604,26 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
             <option key={`${institution.cnes}-${institution.nome}`} value={institution.nome} label={institution.cnes ? `CNES ${institution.cnes}` : undefined} />
           ))}
         </datalist>
+        <datalist id="crm-suggestions">
+          {professionals.filter((professional) => professional.crm).map((professional) => (
+            <option key={`${professional.nome}-${professional.crm}`} value={professional.crm} label={professional.nome} />
+          ))}
+        </datalist>
+        <datalist id="city-suggestions">
+          {[...new Set(professionals.map((professional) => professional.cidadeEstado).filter(Boolean))].map((city) => (
+            <option key={city} value={city} />
+          ))}
+        </datalist>
+        <datalist id="cnes-suggestions">
+          {institutions.filter((institution) => institution.cnes).map((institution) => (
+            <option key={`${institution.cnes}-${institution.nome}`} value={institution.cnes} label={institution.nome} />
+          ))}
+        </datalist>
+        <datalist id="professional-document-suggestions">
+          {professionals.filter((professional) => professional.documentoNumero).map((professional) => (
+            <option key={`${professional.nome}-${professional.documentoNumero}`} value={professional.documentoNumero} label={`${professional.documentoTipo} — ${professional.nome}`} />
+          ))}
+        </datalist>
         <header id="editor-toolbar" className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white/85 p-5 shadow-sm">
           <div>
             <Link
@@ -616,11 +687,11 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
                     <Field label="Paciente" value={form.paciente} onChange={(value) => updateDocumentField("paciente", value)} accent="green" />
                     <Field label="Nascimento" type="date" value={form.nascimento} onChange={(value) => updateDocumentField("nascimento", value)} accent="green" />
                     <Field label="Profissional" value={form.profissional} list="professional-suggestions" onChange={handleProfessionalNameChange} accent="green" />
-                    <Field label="CRM" value={form.crm} onChange={(value) => updateDocumentField("crm", value)} accent="green" />
-                    <Field label="Cidade/estado" value={form.cidadeEstado} onChange={(value) => setForm((prev) => ({ ...prev, cidadeEstado: value }))} accent="green" />
+                    <Field label="CRM" value={form.crm} list="crm-suggestions" onChange={handleCrmChange} accent="green" />
+                    <Field label="Cidade/estado" value={form.cidadeEstado} list="city-suggestions" onChange={(value) => updateDocumentField("cidadeEstado", value)} accent="green" />
                     <Field label="Data do documento" type="date" value={form.dataDocumento || currentDate} onChange={(value) => setForm((prev) => ({ ...prev, dataDocumento: value }))} accent="green" />
                     <Field label="Estabelecimento de saúde" value={form.nomeEstabelecimento} list="institution-suggestions" onChange={handleInstitutionNameChange} accent="green" />
-                    <Field label="CNES" value={form.cnes} onChange={handleCnesChange} accent="green" />
+                    <Field label="CNES" value={form.cnes} list="cnes-suggestions" onChange={handleCnesChange} accent="green" />
                   </div>
                 </>
               )}
@@ -962,7 +1033,7 @@ function ApacFields({
       <FormSection title="Identificação do estabelecimento de saúde (solicitante)">
         <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
           <Field label="1. Nome do estabelecimento solicitante" value={form.nomeEstabelecimento} list="institution-suggestions" onChange={onInstitutionNameChange} />
-          <Field label="2. CNES" value={form.cnes} onChange={onCnesChange} />
+          <Field label="2. CNES" value={form.cnes} list="cnes-suggestions" onChange={onCnesChange} />
         </div>
         <p className="mt-2 text-xs text-slate-500">Digite o CNES para consultar o cadastro público. A busca envia somente esse código.</p>
       </FormSection>
@@ -1033,7 +1104,7 @@ function ApacFields({
             update("documentoSolicitanteTipo", value);
             onProfessionalCnsChange(form.documentoSolicitanteNumero, value === "CNS");
           }} />
-          <div className="md:col-span-2"><Field label="Número do documento (CNS/CPF)" value={form.documentoSolicitanteNumero} onChange={(value) => onProfessionalCnsChange(value, form.documentoSolicitanteTipo === "CNS")} /></div>
+          <div className="md:col-span-2"><Field label="Número do documento (CNS/CPF)" value={form.documentoSolicitanteNumero} list="professional-document-suggestions" onChange={(value) => onProfessionalCnsChange(value, form.documentoSolicitanteTipo === "CNS")} /></div>
           {professionalCnsStatus !== "idle" && (
             <p
               className={`md:col-span-3 rounded-lg px-3 py-2 text-sm ${
@@ -1070,7 +1141,7 @@ function ApacFields({
       <FormSection title="Identificação do estabelecimento de saúde (executante)">
         <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
           <Field label="37. Nome do estabelecimento executante" value={form.estabelecimentoExecutante} list="institution-suggestions" onChange={onExecutorNameChange} />
-          <Field label="38. CNES do estabelecimento executante" value={form.cnesExecutante} onChange={onExecutorCnesChange} />
+          <Field label="38. CNES do estabelecimento executante" value={form.cnesExecutante} list="cnes-suggestions" onChange={onExecutorCnesChange} />
         </div>
         <p className="mt-2 text-xs text-slate-500">Informe o CNES do estabelecimento que executará o procedimento. Esta consulta é independente da consulta do estabelecimento solicitante.</p>
         {executorCnesStatus !== "idle" && (
@@ -1256,6 +1327,9 @@ function getSharedFieldUpdate(
     case "cep":
     case "profissional":
     case "crm":
+    case "cidadeEstado":
+    case "documentoSolicitanteTipo":
+    case "documentoSolicitanteNumero":
     case "nomeEstabelecimento":
     case "enderecoEstabelecimento":
     case "cnes":

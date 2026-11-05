@@ -6,6 +6,14 @@ import { createRecoveryClient } from "@/lib/supabase/recovery-client";
 
 type Mode = "signin" | "signup" | "reset";
 
+function getAuthErrorMessage(reason: unknown) {
+  const message = reason instanceof Error ? reason.message : "";
+  if (/email rate limit exceeded|rate limit.*email/i.test(message)) {
+    return "O limite de envio de e-mails do projeto foi atingido. Cadastro e recuperação de senha compartilham esse limite; tentar outros endereços não resolve. Aguarde cerca de uma hora e tente novamente uma única vez.";
+  }
+  return message || "Não foi possível concluir a solicitação.";
+}
+
 export default function EmailSignIn() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -81,7 +89,7 @@ export default function EmailSignIn() {
       }
       window.location.assign(profile.approved ? "/" : "/pending");
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Não foi possível concluir o login.");
+      setError(getAuthErrorMessage(reason));
     } finally {
       setLoading(false);
     }
