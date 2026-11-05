@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { createRecoveryClient } from "@/lib/supabase/recovery-client";
 
 type Mode = "signin" | "signup" | "reset";
 
@@ -42,8 +43,8 @@ export default function EmailSignIn() {
     try {
       const supabase = createClient();
       if (mode === "reset") {
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/callback?next=%2Freset-password`,
+        const { error: resetError } = await createRecoveryClient().auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
         });
         if (resetError) throw resetError;
         setNotice("Se houver uma conta com esse e-mail, enviaremos um link para redefinir a senha.");

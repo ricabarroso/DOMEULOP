@@ -17,16 +17,36 @@ export default function PasswordResetForm() {
     let active = true;
     const checkRecoverySession = async () => {
       try {
-        const { data, error: sessionError } = await createClient().auth.getSession();
+        const supabase = createClient();
+        const hashParams = new URLSearchParams(window.location.hash.slice(1));
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
+        if (hashParams.get("type") === "recovery" && accessToken && refreshToken) {
+          const { data, error: recoveryError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (recoveryError) throw recoveryError;
+          window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+          if (active) {
+            setReady(Boolean(data.session));
+            if (!data.session) setError("O link de recuperação expirou ou já foi usado. Solicite outro.");
+          }
+          return;
+        }
+
+        const { data, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
         if (active) {
           setReady(Boolean(data.session));
           if (!data.session) setError("O link de recuperação expirou ou já foi usado. Solicite outro.");
         }
-      } catch {
+      } catch (reason) {
         if (active) {
           setReady(false);
-          setError("Não foi possível validar o link de recuperação. Solicite outro.");
+          setError(reason instanceof Error
+            ? reason.message
+            : "Não foi possível validar o link de recuperação. Solicite outro.");
         }
       }
     };
