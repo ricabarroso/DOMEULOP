@@ -12,17 +12,21 @@ function redirectWithoutCache(url: URL) {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
+  const isPasswordRecovery = url.searchParams.get("next") === "/reset-password";
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
     return redirectWithoutCache(new URL("/login?error=configuration", url));
   }
   if (!code) {
-    return redirectWithoutCache(new URL("/login?error=oauth", url));
+    return redirectWithoutCache(new URL(isPasswordRecovery ? "/login?error=recovery" : "/login?error=oauth", url));
   }
 
   const supabase = await createClient();
   const { data: { user }, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
   if (exchangeError || !user) {
-    return redirectWithoutCache(new URL("/login?error=oauth", url));
+    return redirectWithoutCache(new URL(isPasswordRecovery ? "/login?error=recovery" : "/login?error=oauth", url));
+  }
+  if (isPasswordRecovery) {
+    return redirectWithoutCache(new URL("/reset-password", url));
   }
 
   const { data: profile, error: profileError } = await supabase
