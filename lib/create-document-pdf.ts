@@ -22,9 +22,9 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm,
   const pageHeight = pdf.internal.pageSize.getHeight();
   const contentWidth = pageWidth - margin * 2;
   const title = type === "receita" ? "RECEITA MÉDICA" : type === "atestado" ? "ATESTADO MÉDICO" : "PEDIDO DE EXAMES";
-  const ink: [number, number, number] = [128, 0, 24];
-  const accent: [number, number, number] = [196, 0, 36];
-  const pale: [number, number, number] = [255, 238, 241];
+  const ink: [number, number, number] = [39, 82, 59];
+  const accent: [number, number, number] = [91, 151, 108];
+  const pale: [number, number, number] = [231, 244, 234];
   let y = 0;
 
   const pageHeader = (continuation = false) => {
@@ -87,7 +87,7 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm,
     let x = margin;
     for (const item of fields) {
       const cellWidth = contentWidth * item.ratio;
-      pdf.setDrawColor(202, 215, 222);
+      pdf.setDrawColor(204, 220, 207);
       pdf.setFillColor(255, 255, 255);
       pdf.roundedRect(x, y, cellWidth - 1.5, height, 1, 1, "FD");
       pdf.setFont("helvetica", "normal");
@@ -195,8 +195,8 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm,
       const posologyLines = pdf.splitTextToSize(medication.posologia || "Posologia não informada", contentWidth - 12);
       const cardHeight = 8 + nameLines.length * 4.5 + posologyLines.length * 4.2;
       ensureSpace(cardHeight + 3);
-      pdf.setFillColor(249, 251, 252);
-      pdf.setDrawColor(222, 231, 235);
+      pdf.setFillColor(245, 251, 246);
+      pdf.setDrawColor(204, 220, 207);
       pdf.roundedRect(margin, y, contentWidth, cardHeight, 1.5, 1.5, "FD");
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(10);
