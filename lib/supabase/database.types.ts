@@ -105,6 +105,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      saved_values: {
+        Row: {
+          id: string;
+          user_id: string;
+          field_key: string;
+          value_key: string;
+          value: string;
+          detail: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          field_key: string;
+          value_key: string;
+          value: string;
+          detail?: string;
+          updated_at?: string;
+        };
+        Update: { value?: string; detail?: string; updated_at?: string };
+        Relationships: [];
+      };
+      saved_patients: {
+        Row: {
+          id: string;
+          user_id: string;
+          entry_key: string;
+          nome: string;
+          data: Json;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          entry_key: string;
+          nome: string;
+          data?: Json;
+          updated_at?: string;
+        };
+        Update: { nome?: string; data?: Json; updated_at?: string };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
