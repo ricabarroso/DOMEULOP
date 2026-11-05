@@ -46,6 +46,19 @@ Ao informar os 7 dígitos do CNES, a aplicação consulta a API pública de Dado
 
 Na página APAC, solicitante e executante são estabelecimentos independentes e têm campos e consultas CNES separados. A consulta de um não preenche nem altera os dados do outro. Escolher CNS como documento do profissional solicitante e informar 15 dígitos consulta a busca pública de profissionais do CNES (`/services/profissionais?cns=...`). Quando localizado, o nome do profissional é preenchido para conferência. A consulta é limitada ao CNS do profissional no cadastro público do CNES; o CNS do paciente permanece no formulário e no PDF, sem ser enviado para a API. A geração do PDF também acontece localmente no navegador.
 
+## Importação de dados do paciente pelo SISREG
+
+Nos documentos que têm o bloco "Dados do atendimento" ou "Identificação do paciente" (receita, atestado, pedido de exames, APAC e ficha antirrábica), o botão "Importar do SISREG" oferece um favorito (bookmarklet) para trazer os dados de um paciente já localizado na tela "Consulta ao Cadastro de Pacientes SUS" do SISREG III, usando a própria sessão do usuário logado no portal.
+
+Como usar:
+
+1. Clique em "Importar do SISREG" e arraste o link "Copiar dados do SISREG" para a barra de favoritos do navegador.
+2. No SISREG, já logado, abra a consulta de cadastro do paciente pelo CNS.
+3. Clique no favorito: ele lê a tela de resultado e copia os dados para a área de transferência (ou mostra um texto para copiar manualmente, se o navegador bloquear o acesso direto).
+4. Volte ao aplicativo, cole o conteúdo na caixa de texto do painel "Importar do SISREG" e clique em "Aplicar dados".
+
+Nada é enviado a um servidor nesse processo: o favorito roda inteiramente no navegador do usuário, usando a sessão dele no SISREG, e os dados colados só preenchem os campos do formulário em memória. O uso depende do acesso que o próprio usuário já possui no SISREG e deve respeitar os termos de uso do sistema e o sigilo dos dados de pacientes.
+
 ## Regras de privacidade
 
 - O formulário solicita apenas os dados indispensáveis para cada documento.
