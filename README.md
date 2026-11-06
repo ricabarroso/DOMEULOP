@@ -18,6 +18,8 @@ Aplicação em Next.js para auxiliar a criação de receitas, atestados, pedidos
 - Layout das receitas, atestados e pedidos de exames em verde-claro, com opção de incluir logo PNG/JPEG
 - Geração de PDF no navegador com abertura da visualização em nova aba
 - Sugestões de profissionais e estabelecimentos usados durante a sessão, com dados de paciente e profissional compartilhados entre os documentos
+- Busca de medicamentos na página inicial pelo CATMAT, com seleção de apresentação e envio para a receita
+- Calculadora aritmética de dose por peso usando parâmetros da bula informados e conferidos pelo profissional
 - Receita de medicamento manipulado em texto livre
 - Modelos de prescrição por doença, salvos na conta e carregados com um clique
 - Login com e-mail e senha, recuperação de senha por e-mail, aprovação administrativa de novas contas e revogação de acessos
@@ -47,6 +49,12 @@ Ao informar os 7 dígitos do CNES, a aplicação consulta a API pública de Dado
 O nome e o endereço são confirmados novamente pela API para o CNES informado; endereços de listas salvas não são usados para preencher documentos. Instituições selecionadas em um documento não substituem a instituição de outro documento. Se um nome corresponder a mais de um CNES, informe o código correto antes de usar o endereço.
 
 Na página APAC, solicitante e executante são estabelecimentos independentes e têm campos e consultas CNES separados. A consulta de um não preenche nem altera os dados do outro. Escolher CNS como documento do profissional solicitante e informar 15 dígitos consulta a busca pública de profissionais do CNES (`/services/profissionais?cns=...`). Quando localizado, o nome do profissional é preenchido para conferência. A consulta é limitada ao CNS do profissional no cadastro público do CNES; o CNS do paciente permanece no formulário e no PDF, sem ser enviado para a API. A geração do PDF também acontece localmente no navegador.
+
+## Busca de medicamentos e cálculo de dose por peso
+
+A busca começa após três letras e consulta a [Tabela CATMAT referenciada pela documentação do e-SUS APS](https://integracao.esusaps.bridge.ufsc.tech/ledi/documentacao/referencias/tabela_catmat.html). Os resultados estruturados incluem código CATMAT, princípio ativo, concentração, forma farmacêutica e unidade de fornecimento. A seleção pode ser enviada ao formulário de receita.
+
+O CATMAT não contém posologia, via ou modo de usar. O [Bulário Eletrônico da Anvisa](https://consultas.anvisa.gov.br/#/bulario/) é aberto para conferência manual da bula profissional; o aplicativo não extrai nem interpreta seu conteúdo automaticamente. A calculadora por peso realiza somente a operação matemática com os valores da bula inseridos pelo profissional. A conversão para mL só aparece quando a concentração está expressa em mg/mL. Confirme indicação, faixa etária, contraindicações, frequência, duração, limites de dose, unidades e volume mensurável na bula antes de usar. A busca envia ao servidor somente o termo do medicamento, nunca dados do paciente.
 
 ## Importação de dados do paciente pelo SISREG
 

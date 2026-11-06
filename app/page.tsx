@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AccountDashboard from "@/components/account-dashboard";
+import MedicationSearch from "@/components/medication-search";
 
 const documents = [
   {
@@ -54,6 +55,8 @@ export default function Home() {
           <AccountDashboard />
         </section>
 
+        <MedicationSearch />
+
         <section aria-label="Tipos de documentos" className="grid gap-5 md:grid-cols-2">
           {documents.map((document) => (
             <Link
@@ -74,7 +77,9 @@ export default function Home() {
         <aside className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-950">
           Privacidade: modelos de prescrição são armazenados na conta autenticada. Os dados
           de pacientes e profissionais ficam apenas na memória desta sessão e não são enviados
-          ao Supabase. Na ficha antirrábica, o preenchimento e o PDF permanecem no navegador.
+          ao Supabase. A busca de medicamentos envia somente o termo pesquisado ao servidor
+          para consultar o catálogo, sem dados do paciente. Na ficha antirrábica, o preenchimento
+          e o PDF permanecem no navegador.
         </aside>
       </div>
     </main>

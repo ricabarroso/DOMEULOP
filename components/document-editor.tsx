@@ -173,7 +173,13 @@ function isCnesLookup(value: unknown): value is CnesLookup {
   );
 }
 
-export default function DocumentEditor({ documentType }: { documentType: DocumentType }) {
+export default function DocumentEditor({
+  documentType,
+  initialMedication,
+}: {
+  documentType: DocumentType;
+  initialMedication?: Pick<PrescriptionMedication, "nome" | "apresentacao" | "posologia">;
+}) {
   const isApac = documentType === "apac";
   const {
     sharedData,
@@ -188,7 +194,13 @@ export default function DocumentEditor({ documentType }: { documentType: Documen
     rememberCurrentPatient,
     applyPatient,
   } = useDocumentSession();
-  const [formState, setForm] = useState<MedicalDocumentForm>(initialForm);
+  const [formState, setForm] = useState<MedicalDocumentForm>(() => initialMedication
+    ? {
+      ...initialForm,
+      prescriptionType: "standard",
+      medicamentos: [{ ...initialForm.medicamentos[0], ...initialMedication, quantidade: "" }],
+    }
+    : initialForm);
   const form = useMemo(() => ({ ...formState, ...sharedData }), [formState, sharedData]);
   const currentDate = useSyncExternalStore(subscribeToLocalDate, getCurrentLocalDate, () => "");
   const [copied, setCopied] = useState(false);
