@@ -3,13 +3,30 @@ export const medicationCatalogSource =
 
 export const medicationCatalogSourceName = "Tabela CATMAT referenciada pelo e-SUS APS";
 
+export const anvisaMedicationCatalogSource = "https://dados.anvisa.gov.br/dados/CONSULTAS/";
+export const anvisaMedicationCatalogSourceName = "Dados abertos de medicamentos registrados da Anvisa";
+export const anvisaBularioSource = "https://consultas.anvisa.gov.br/#/bulario/";
+
 export type MedicationCatalogEntry = {
   id: string;
   activeIngredient: string;
   concentration: string;
   pharmaceuticalForm: string;
   supplyUnit: string;
+  source: "catmat" | "anvisa";
+  commercialName?: string;
+  anvisaRegistration?: string;
+  processNumber?: string;
+  regulatoryCategory?: string;
 };
+
+export function anvisaBularioSearchUrl(medicationName: string) {
+  return `${anvisaBularioSource}?nomeProduto=${encodeURIComponent(medicationName)}`;
+}
+
+export function medicationDisplayName(entry: MedicationCatalogEntry) {
+  return entry.source === "anvisa" ? entry.commercialName ?? entry.activeIngredient : entry.activeIngredient;
+}
 
 export function parseMedicationCatalogUpdatedAt(html: string) {
   const match = html.match(/Alterado em\s+(\d{2})\/(\d{2})\/(\d{4})/i);
@@ -50,6 +67,7 @@ export function parseMedicationCatalog(html: string): MedicationCatalogEntry[] {
       concentration: cells[2],
       pharmaceuticalForm: cells[3],
       supplyUnit: cells[4],
+      source: "catmat",
     });
   }
 

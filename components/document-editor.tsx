@@ -16,6 +16,8 @@ import SavedDatalists, {
 } from "@/components/saved-datalists";
 import PrescriptionTemplateManager from "@/components/prescription-template-manager";
 import SisregImportButton from "@/components/sisreg-import-button";
+import MedicationAutocomplete from "@/components/medication-autocomplete";
+import { medicationDisplayName, type MedicationCatalogEntry } from "@/lib/medication-catalog";
 
 export type DocumentType = "receita" | "atestado" | "exame" | "apac";
 type ApacProcedure = { codigo: string; nome: string; quantidade: string };
@@ -936,12 +938,25 @@ export default function DocumentEditor({
                               )}
                             </div>
                             <div className="grid gap-4 md:grid-cols-2">
-                              <Field
+                              <MedicationAutocomplete
                                 label="Nome do medicamento"
                                 value={medication.nome}
                                 list="saved-medicamento"
                                 onChange={(value) => updateMedication(index, "nome", value)}
-                                accent="green"
+                                onSelect={(entry: MedicationCatalogEntry) => setForm((previous) => ({
+                                  ...previous,
+                                  medicamentos: previous.medicamentos.map((item, itemIndex) => itemIndex === index
+                                    ? {
+                                      ...item,
+                                      nome: medicationDisplayName(entry),
+                                      apresentacao: [entry.concentration, entry.pharmaceuticalForm, entry.supplyUnit]
+                                        .filter(Boolean)
+                                        .join(" — "),
+                                      posologia: "",
+                                      quantidade: "",
+                                    }
+                                    : item),
+                                }))}
                               />
                               <Field
                                 label="Apresentação / concentração (ex.: 500 mg)"

@@ -4,12 +4,22 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import type { MedicationCatalogEntry } from "@/lib/medication-catalog";
-import { medicationCatalogSource, medicationCatalogSourceName } from "@/lib/medication-catalog";
+import BulaPdfReader from "@/components/bula-pdf-reader";
+import {
+  anvisaBularioSearchUrl,
+  medicationCatalogSource,
+  medicationCatalogSourceName,
+  medicationDisplayName,
+} from "@/lib/medication-catalog";
 import { calculateWeightDose } from "@/lib/weight-dose";
 
 type CatalogResponse = {
   results: MedicationCatalogEntry[];
+  anvisaResults?: MedicationCatalogEntry[];
   source?: { name: string; url: string; updatedAt: string | null };
+  anvisaSource?: { name: string; url: string; updatedAt: string | null };
+  catmatError?: string;
+  anvisaError?: string;
   error?: string;
 };
 
@@ -61,6 +71,9 @@ export default function MedicationSearch() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [source, setSource] = useState<CatalogResponse["source"]>();
+  const [anvisaSource, setAnvisaSource] = useState<CatalogResponse["anvisaSource"]>();
+  const [catmatError, setCatmatError] = useState("");
+  const [anvisaError, setAnvisaError] = useState("");
   const [weight, setWeight] = useState("");
   const [labelDose, setLabelDose] = useState("");
   const [doseBasis, setDoseBasis] = useState<"per-dose" | "per-day">("per-dose");
@@ -89,9 +102,13 @@ export default function MedicationSearch() {
         });
         const payload = await response.json() as CatalogResponse;
         if (!response.ok) throw new Error(payload.error || "Não foi possível pesquisar o catálogo.");
-        setResults(payload.results);
+        const suggestions = [...payload.results, ...(payload.anvisaResults ?? [])];
+        setResults(suggestions);
         setSource(payload.source);
-        setActiveIndex(payload.results.length > 0 ? 0 : -1);
+        setAnvisaSource(payload.anvisaSource);
+        setCatmatError(payload.catmatError ?? "");
+        setAnvisaError(payload.anvisaError ?? "");
+        setActiveIndex(suggestions.length > 0 ? 0 : -1);
       } catch (requestError) {
         if (controller.signal.aborted) return;
         setResults([]);
@@ -109,7 +126,7 @@ export default function MedicationSearch() {
 
   const selectMedication = (entry: MedicationCatalogEntry) => {
     setSelected(entry);
-    setQuery(entry.activeIngredient);
+    setQuery(medicationDisplayName(entry));
     setResults([]);
     setActiveIndex(-1);
     setWeight("");
@@ -155,7 +172,6 @@ export default function MedicationSearch() {
       setDoseError("Selecione uma apresentação antes de calcular.");
       return;
     }
-
     const result = calculateWeightDose({
       weightKg: parsedWeight,
       labeledDoseMgPerKg: parsedLabelDose,
@@ -181,7 +197,7 @@ export default function MedicationSearch() {
   };
 
   const recipeHref = selected
-    ? `/receita?medicamento=${encodeURIComponent(selected.activeIngredient)}&apresentacao=${encodeURIComponent(
+    ? `/receita?medicamento=${encodeURIComponent(medicationDisplayName(selected))}&apresentacao=${encodeURIComponent(
       [selected.concentration, selected.pharmaceuticalForm, selected.supplyUnit].filter(Boolean).join(" — "),
     )}&posologia=${encodeURIComponent([instructions.trim(), posology.trim()].filter(Boolean).join("\n"))}`
     : "/receita";
@@ -189,10 +205,10 @@ export default function MedicationSearch() {
   return (
     <section aria-labelledby="medication-search-heading" className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm md:p-8">
       <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-800">Busca de medicamentos</p>
-      <h2 id="medication-search-heading" className="mt-2 text-2xl font-bold">Encontre princípio ativo e apresentação</h2>
+      <h2 id="medication-search-heading" className="mt-2 text-2xl font-bold">Encontre medicamentos e apresentações</h2>
       <p className="mt-2 max-w-3xl leading-6 text-slate-600">
-        Pesquise pelo princípio ativo. A busca usa o catálogo CATMAT referenciado pelo e-SUS APS; confira a bula
-        profissional vigente antes de prescrever.
+        Pesquise por princípio ativo ou nome comercial nos catálogos CATMAT e de registros ativos da Anvisa.
+        Confira a bula profissional vigente da apresentação antes de prescrever.
       </p>
 
       <div className="relative mt-5">
@@ -215,6 +231,8 @@ export default function MedicationSearch() {
             setSelected(null);
             setResults([]);
             setError("");
+            setCatmatError("");
+            setAnvisaError("");
             setActiveIndex(-1);
             setLoading(false);
           }}
@@ -231,7 +249,7 @@ export default function MedicationSearch() {
           <ul id={listId} role="listbox" aria-label="Sugestões de medicamentos" className="absolute z-20 mt-1 max-h-80 w-full overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
             {results.map((entry, index) => (
               <li
-                key={`${entry.id}-${entry.concentration}`}
+                key={entry.id}
                 id={`${listId}-${index}`}
                 role="option"
                 aria-selected={index === activeIndex}
@@ -240,11 +258,22 @@ export default function MedicationSearch() {
                 onClick={() => selectMedication(entry)}
                 className={`cursor-pointer px-4 py-3 text-sm ${index === activeIndex ? "bg-emerald-50" : "hover:bg-slate-50"}`}
               >
-                <span className="font-semibold text-slate-900">{highlightMatch(entry.activeIngredient, query.trim())}</span>
-                <span className="block text-slate-600">
-                  {entry.concentration} · {entry.pharmaceuticalForm} · {entry.supplyUnit}
-                </span>
-                <span className="block text-xs text-slate-500">CATMAT {entry.id}</span>
+                <span className="font-semibold text-slate-900">{highlightMatch(medicationDisplayName(entry), query.trim())}</span>
+                {entry.source === "anvisa" ? (
+                  <>
+                    {entry.activeIngredient !== entry.commercialName && (
+                      <span className="block text-slate-600">Princípio ativo: {highlightMatch(entry.activeIngredient, query.trim())}</span>
+                    )}
+                    <span className="block text-xs text-slate-500">
+                      Anvisa · Registro {entry.anvisaRegistration} · {entry.regulatoryCategory || "Categoria não informada"}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="block text-slate-600">{entry.concentration} · {entry.pharmaceuticalForm} · {entry.supplyUnit}</span>
+                    <span className="block text-xs text-slate-500">CATMAT {entry.id}</span>
+                  </>
+                )}
               </li>
             ))}
           </ul>
@@ -260,26 +289,64 @@ export default function MedicationSearch() {
         </a>. Atualização indicada na página de origem: {source?.updatedAt ?? "não informada"}.
         O CATMAT não contém posologia nem modo de usar.
       </p>
+      {anvisaSource && (
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          Também consulta <a className="underline" href={anvisaSource.url} target="_blank" rel="noreferrer">{anvisaSource.name}</a>.
+          Atualização dos dados: {anvisaSource.updatedAt ?? "não informada"}.
+        </p>
+      )}
+      {(catmatError || anvisaError) && (
+        <p role="status" className="mt-1 text-xs text-amber-800">
+          {[catmatError, anvisaError].filter(Boolean).join(" ")} Os resultados dos demais catálogos continuam disponíveis.
+        </p>
+      )}
 
       {selected && (
         <div className="mt-6 space-y-5 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">{selected.activeIngredient}</h3>
-            <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-              <div><dt className="text-slate-600">Concentração</dt><dd className="font-medium">{selected.concentration}</dd></div>
-              <div><dt className="text-slate-600">Forma farmacêutica</dt><dd className="font-medium">{selected.pharmaceuticalForm}</dd></div>
-              <div><dt className="text-slate-600">Unidade de fornecimento</dt><dd className="font-medium">{selected.supplyUnit}</dd></div>
-              <div><dt className="text-slate-600">Código CATMAT</dt><dd className="font-medium">{selected.id}</dd></div>
-            </dl>
+            <h3 className="text-lg font-semibold text-slate-900">{medicationDisplayName(selected)}</h3>
+            {selected.source === "anvisa" ? (
+              <>
+                <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                  <div><dt className="text-slate-600">Princípio ativo registrado</dt><dd className="font-medium">{selected.activeIngredient}</dd></div>
+                  <div><dt className="text-slate-600">Registro Anvisa</dt><dd className="font-medium">{selected.anvisaRegistration}</dd></div>
+                  <div><dt className="text-slate-600">Categoria regulatória</dt><dd className="font-medium">{selected.regulatoryCategory || "Não informada"}</dd></div>
+                  <div><dt className="text-slate-600">Número do processo</dt><dd className="font-medium">{selected.processNumber || "Não informado"}</dd></div>
+                </dl>
+                <a
+                  href={anvisaBularioSearchUrl(medicationDisplayName(selected))}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-block font-semibold text-emerald-800 underline"
+                >
+                  Abrir a busca deste medicamento no Bulário da Anvisa
+                </a>
+              </>
+            ) : (
+              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                <div><dt className="text-slate-600">Concentração</dt><dd className="font-medium">{selected.concentration}</dd></div>
+                <div><dt className="text-slate-600">Forma farmacêutica</dt><dd className="font-medium">{selected.pharmaceuticalForm}</dd></div>
+                <div><dt className="text-slate-600">Unidade de fornecimento</dt><dd className="font-medium">{selected.supplyUnit}</dd></div>
+                <div><dt className="text-slate-600">Código CATMAT</dt><dd className="font-medium">{selected.id}</dd></div>
+              </dl>
+            )}
           </div>
 
+          <BulaPdfReader
+            key={selected.id}
+            medicationName={medicationDisplayName(selected)}
+            registration={selected.anvisaRegistration}
+          />
+
           <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-            Consulte a bula profissional vigente da apresentação e confirme indicação, faixa etária, contraindicações,
-            intervalo, duração e limites de dose. O catálogo não fornece posologia. A bula da Anvisa é consultada
-            manualmente e não é pesquisada nem interpretada automaticamente por este aplicativo.
-            {" "}<a href="https://consultas.anvisa.gov.br/#/bulario/" target="_blank" rel="noreferrer" className="font-semibold underline">
-              Abrir Bulário Eletrônico da Anvisa
-            </a>
+            A bula profissional em PDF pode conter posologia, via e modo de uso. Confirme se corresponde ao produto e
+            à apresentação prescrita, além de indicação, faixa etária, contraindicações, intervalo, duração e limites.
+            O extrator abaixo procura texto e apresenta trechos por página; não interpreta a bula nem calcula doses automaticamente.
+            {selected.source !== "anvisa" && (
+              <>{" "}<a href="https://consultas.anvisa.gov.br/#/bulario/" target="_blank" rel="noreferrer" className="font-semibold underline">
+                Abrir Bulário Eletrônico da Anvisa
+              </a></>
+            )}
           </div>
 
           <fieldset className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
@@ -288,6 +355,12 @@ export default function MedicationSearch() {
               Ferramenta aritmética: não recomenda dose. Informe exatamente a dose da bula profissional para a
               indicação e faixa etária em questão.
             </p>
+            {selected.source === "anvisa" && (
+              <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950">
+                O registro Anvisa não informa concentração nem apresentação. O cálculo pode mostrar somente mg por
+                dose; confirme a apresentação na bula. Sem concentração em mg/mL, não haverá conversão para mL.
+              </p>
+            )}
             <label className="flex items-start gap-2 text-sm leading-5 text-slate-700">
               <input
                 type="checkbox"
@@ -351,7 +424,8 @@ export default function MedicationSearch() {
                 Resultado aritmético:                 <strong>{formatNumber(calculatedDose.milligramsPerDose)} mg por dose</strong>
                 {calculatedDose.millilitersPerDose !== null && <> ({formatNumber(calculatedDose.millilitersPerDose)} mL)</>}.
                 {calculatedDose.maximumApplied && " Resultado limitado pela dose máxima por administração que você informou."}
-                {calculatedDose.millilitersPerDose === null && " A concentração informada não permite converter para mL automaticamente."}
+                {calculatedDose.millilitersPerDose === null && !selected.concentration && " Sem concentração validada, o resultado é somente em mg e não há conversão para mL."}
+                {calculatedDose.millilitersPerDose === null && selected.concentration && " A concentração informada não permite converter para mL automaticamente."}
                 <p className="mt-1">Confirme unidades, arredondamento, limite máximo e volume mensurável antes de usar.</p>
                 <button type="button" onClick={applyCalculatedDose} className="mt-2 font-semibold underline">
                   Inserir o resultado na posologia
