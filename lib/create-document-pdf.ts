@@ -157,17 +157,6 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm,
   };
 
   pageHeader();
-  section("Identificação do paciente");
-  infoRow([
-    { label: "Paciente", value: form.paciente, ratio: 0.7 },
-    { label: "Data de nascimento", value: form.nascimento ? formatDate(form.nascimento) : "", ratio: 0.3 },
-  ]);
-  if (form.cpf) infoRow([{ label: "CPF do paciente", value: form.cpf, ratio: 1 }]);
-  section(type === "exame" ? "Profissional solicitante" : "Profissional responsável");
-  infoRow([
-    { label: type === "exame" ? "Solicitante" : "Profissional", value: form.profissional, ratio: 0.68 },
-    { label: "CRM", value: form.crm, ratio: 0.32 },
-  ]);
   if (form.nomeEstabelecimento || form.enderecoEstabelecimento || form.cnes) {
     textBlock(
       "Estabelecimento / CNES",
@@ -176,6 +165,17 @@ export function createDocumentPdf(type: DocumentType, form: MedicalDocumentForm,
         .join(" — "),
     );
   }
+  section(type === "exame" ? "Profissional solicitante" : "Profissional responsável");
+  infoRow([
+    { label: type === "exame" ? "Solicitante" : "Profissional", value: form.profissional, ratio: 0.68 },
+    { label: "CRM", value: form.crm, ratio: 0.32 },
+  ]);
+  section("Identificação do paciente");
+  infoRow([
+    { label: "Paciente", value: form.paciente, ratio: 0.48 },
+    { label: "CPF do paciente", value: form.cpf, ratio: 0.22 },
+    { label: "Data de nascimento", value: form.nascimento ? formatDate(form.nascimento) : "", ratio: 0.3 },
+  ]);
 
   if (type === "receita") {
     section("Prescrição");
