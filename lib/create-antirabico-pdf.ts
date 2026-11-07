@@ -148,10 +148,11 @@ function drawTextInBox(
   placement: TextPlacement,
   font: Awaited<ReturnType<PDFDocument["embedFont"]>>,
   bold = false,
+  verticalOffset = 0,
 ) {
   const height = placement.height / 2;
   const width = placement.width / 2;
-  let fontSize = Math.min(9, Math.max(6, height * 0.72));
+  let fontSize = Math.min(10, Math.max(7, height * 0.9));
   while (font.widthOfTextAtSize(text, fontSize) > width - 2 && fontSize > 5) {
     fontSize -= 0.25;
   }
@@ -159,7 +160,7 @@ function drawTextInBox(
     throw new Error(`O conteúdo excede o espaço impresso reservado para: ${text}`);
   }
   const x = placement.x / 2 + 1;
-  const y = page.getHeight() - placement.y / 2 - fontSize * 0.8;
+  const y = page.getHeight() - (placement.y + verticalOffset) / 2 - fontSize * 0.8;
   page.drawText(text, {
     x,
     y,
@@ -237,7 +238,7 @@ export async function createAntirabicoPdf(values: AntirabicoValues): Promise<Uin
   for (const [key, placement] of Object.entries(textPlacements)) {
     if (key === "observations") continue;
     const value = printableValue(values[key]);
-    if (value) drawTextInBox(pages[placement.page], value, placement, font);
+    if (value) drawTextInBox(pages[placement.page], value, placement, font, false, 8);
   }
 
   for (const [key, placement] of Object.entries(codePlacements)) {
