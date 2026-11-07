@@ -178,6 +178,7 @@ export default function AccountDashboard() {
           <Link href="/atestado" className="rounded-xl border border-emerald-300 px-4 py-2 font-semibold text-emerald-900 hover:bg-emerald-50">Atestado</Link>
           <Link href="/pedido-exames" className="rounded-xl border border-emerald-300 px-4 py-2 font-semibold text-emerald-900 hover:bg-emerald-50">Pedido de exames</Link>
           <Link href="/apac" className="rounded-xl border border-emerald-300 px-4 py-2 font-semibold text-emerald-900 hover:bg-emerald-50">APAC</Link>
+          <Link href="/atendimento-antirrabico" className="rounded-xl border border-emerald-300 px-4 py-2 font-semibold text-emerald-900 hover:bg-emerald-50">Ficha antirrábica</Link>
         </nav>
       )}
 
