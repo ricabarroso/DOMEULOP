@@ -21,6 +21,7 @@ type MarkPlacement = {
 
 const textPlacements: Record<string, TextPlacement> = {
   notificationNumber: { page: 0, x: 944, y: 71, width: 172, height: 23 },
+  cid: { page: 0, x: 772, y: 200, width: 124, height: 24 },
   notificationDate: { page: 0, x: 915, y: 190, width: 208, height: 25 },
   notificationState: { page: 0, x: 107, y: 257, width: 45, height: 24 },
   notificationCity: { page: 0, x: 165, y: 255, width: 777, height: 25 },

@@ -308,7 +308,7 @@ export default function AntirabicoEditor() {
             para preenchimento rápido.
           </p>
           <p className="mt-3 max-w-4xl text-base leading-7 text-slate-600">
-            O campo CID-10 foi deixado em branco para preenchimento conforme a avaliação. O arquivo indica SVS — 27/09/2005;
+            Informe o código CID-10 no campo do formulário, conforme a avaliação. O arquivo indica SVS — 27/09/2005;
             confirme a versão e as orientações vigentes antes de usar.
           </p>
           <div className="mt-4">

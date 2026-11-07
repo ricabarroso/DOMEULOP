@@ -75,6 +75,7 @@ export const antirabicoSections: readonly AntirabicoSection[] = [
     title: "Notificação e identificação",
     fields: [
       { key: "notificationNumber", label: "Nº da notificação", type: "text", maxLength: 20 },
+      { key: "cid", label: "2. Código CID-10 do agravo", type: "text" },
       { key: "notificationDate", label: "3. Data da Notificação", type: "date" },
       { key: "notificationState", label: "4. UF", type: "text", maxLength: 2 },
       { key: "notificationCity", label: "5. Município de Notificação", type: "text", maxLength: 70 },
