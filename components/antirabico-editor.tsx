@@ -50,6 +50,7 @@ export default function AntirabicoEditor() {
   const [filledPdfUrl, setFilledPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cnesMessage, setCnesMessage] = useState("");
+  const [cnesMessageType, setCnesMessageType] = useState<"success" | "error">("error");
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
@@ -73,11 +74,13 @@ export default function AntirabicoEditor() {
               ? data.error
               : "Não foi possível consultar o estabelecimento no CNES.";
           setCnesMessage(message);
+          setCnesMessageType("error");
           return;
         }
 
         if (typeof data !== "object" || data === null || !("nome" in data) || typeof data.nome !== "string") {
           setCnesMessage("O serviço CNES retornou dados incompatíveis.");
+          setCnesMessageType("error");
           return;
         }
 
@@ -90,6 +93,7 @@ export default function AntirabicoEditor() {
         });
         setFilledPdfUrl(null);
         setCnesMessage("Estabelecimento localizado. Confira os dados da unidade.");
+        setCnesMessageType("success");
       } catch (lookupError) {
         if (controller.signal.aborted) return;
         setCnesMessage(
@@ -97,6 +101,7 @@ export default function AntirabicoEditor() {
             ? lookupError.message
             : "Não foi possível consultar o estabelecimento no CNES.",
         );
+        setCnesMessageType("error");
       }
     };
     void lookupInstitution();
@@ -122,7 +127,10 @@ export default function AntirabicoEditor() {
       return;
     }
 
-    if (key === "notificationCnes") setCnesMessage("");
+    if (key === "notificationCnes") {
+      setCnesMessage("");
+      setCnesMessageType("error");
+    }
     setValues((current) => ({ ...current, [key]: value }));
 
     if ((key === "patientName" || key === "patientCns") && typeof value === "string") {
@@ -268,22 +276,42 @@ export default function AntirabicoEditor() {
     <main className="min-h-screen px-4 py-8 text-slate-900 md:px-8" onBlur={commitSavedEntries}>
       <SavedDatalists />
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-          <Link href="/" className="text-sm font-semibold text-red-800 hover:underline">
-            ← Todos os documentos
-          </Link>
+        <header className="rounded-3xl border border-emerald-100 bg-white/95 p-6 shadow-sm md:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Link href="/" className="text-sm font-semibold text-emerald-800 hover:underline">
+              ← Todos os documentos
+            </Link>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={generatePdf}
+                disabled={isGenerating}
+                className="rounded-xl bg-emerald-700 px-5 py-3 font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-60"
+              >
+                {isGenerating ? "Gerando PDF..." : "Gerar ficha preenchida"}
+              </button>
+              <a
+                href={originalPdfUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl border border-emerald-300 bg-white px-5 py-3 font-semibold text-emerald-900 transition hover:bg-emerald-50"
+              >
+                Abrir ficha original
+              </a>
+            </div>
+          </div>
           <h1 className="mt-3 text-2xl font-bold md:text-3xl">Atendimento Anti-Rábico Humano</h1>
-          <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
+          <p className="mt-3 max-w-4xl text-base leading-7 text-slate-700">
             Preencha os campos conforme a ficha original. Ao gerar, os dados são colocados sobre o PDF original,
             preservando o formulário para visualizar, imprimir ou baixar. O PDF é gerado localmente no navegador
             e o CNS do paciente não é enviado ao CNES. Paciente, unidade e investigador ficam salvos na sua conta
             para preenchimento rápido.
           </p>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
+          <p className="mt-3 max-w-4xl text-base leading-7 text-slate-600">
             A ficha informa “2 — Individual” e o código CID-10 “W64”. O arquivo original indica SVS — 27/09/2005;
             confirme a versão e as orientações vigentes antes de usar.
           </p>
-          <div className="mt-3">
+          <div className="mt-4">
             <SisregImportButton onImport={updateSharedData} />
           </div>
         </header>
@@ -296,14 +324,22 @@ export default function AntirabicoEditor() {
               ))}
             </datalist>
             {cnesMessage && (
-              <p role="status" aria-live="polite" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+              <p
+                role="status"
+                aria-live="polite"
+                className={`rounded-xl border p-3 text-sm ${
+                  cnesMessageType === "success"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                    : "border-red-200 bg-red-50 text-red-900"
+                }`}
+              >
                 {cnesMessage}
               </p>
             )}
             {antirabicoSections.map((section) => (
-              <section key={section.title} className="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm">
-                <h2 className="mb-4 text-lg font-semibold">{section.title}</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
+              <section key={section.title} className="rounded-2xl border border-emerald-100 bg-white/95 p-6 shadow-sm md:p-7">
+                <h2 className="mb-5 text-xl font-semibold tracking-tight">{section.title}</h2>
+                <div className="grid gap-x-6 gap-y-5 md:grid-cols-2">
                   {section.fields.map((field) => (
                     <FieldInput
                       key={field.key}
@@ -329,7 +365,7 @@ export default function AntirabicoEditor() {
                 type="button"
                 onClick={generatePdf}
                 disabled={isGenerating}
-                className="rounded-xl bg-red-700 px-5 py-3 font-semibold text-white hover:bg-red-800 disabled:cursor-wait disabled:opacity-60"
+                className="rounded-xl bg-emerald-700 px-5 py-3 font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-60"
               >
                 {isGenerating ? "Gerando PDF..." : "Gerar ficha preenchida"}
               </button>
@@ -337,7 +373,7 @@ export default function AntirabicoEditor() {
                 href={originalPdfUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-800 hover:bg-slate-50"
+                className="rounded-xl border border-emerald-300 bg-white px-5 py-3 font-semibold text-emerald-900 hover:bg-emerald-50"
               >
                 Abrir ficha original
               </a>
@@ -346,7 +382,7 @@ export default function AntirabicoEditor() {
                   <a
                     href={filledPdfUrl}
                     download="atendimento-antirrabico-preenchido.pdf"
-                    className="rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-800 hover:bg-slate-50"
+                    className="rounded-xl border border-emerald-300 bg-white px-5 py-3 font-semibold text-emerald-900 hover:bg-emerald-50"
                   >
                     Baixar PDF preenchido
                   </a>
@@ -354,7 +390,7 @@ export default function AntirabicoEditor() {
                     href={filledPdfUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-800 hover:bg-slate-50"
+                    className="rounded-xl border border-emerald-300 bg-white px-5 py-3 font-semibold text-emerald-900 hover:bg-emerald-50"
                   >
                     Abrir para imprimir
                   </a>
@@ -368,7 +404,7 @@ export default function AntirabicoEditor() {
             <iframe
               title={filledPdfUrl ? "Pré-visualização da ficha antirrábica preenchida" : "Ficha original de Atendimento Anti-Rábico Humano"}
               src={`${filledPdfUrl ?? originalPdfUrl}#view=FitH`}
-              className="h-[82vh] min-h-[640px] w-full rounded-2xl border border-slate-300 bg-white shadow-sm"
+              className="h-[82vh] min-h-[640px] w-full rounded-2xl border border-emerald-200 bg-white shadow-sm"
             />
           </section>
         </div>
@@ -392,16 +428,16 @@ function FieldInput({
 }) {
   const id = `antirabico-${field.key}`;
   const controlClassName =
-    "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700";
+    "mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base leading-6 text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700";
 
   if (field.type === "checkboxes") {
     const selected = Array.isArray(value) ? value : [];
     return (
-      <fieldset className="sm:col-span-2">
-        <legend className="text-sm font-medium">{field.label}</legend>
-        <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
+      <fieldset className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 md:col-span-2">
+        <legend className="px-1 text-base font-semibold leading-6 text-slate-800">{field.label}</legend>
+        <div className="mt-2 flex flex-wrap gap-x-6 gap-y-3">
           {field.options.map((option) => (
-            <label key={option.value} className="inline-flex items-center gap-2 text-sm text-slate-700">
+            <label key={option.value} className="inline-flex items-center gap-2.5 text-base leading-6 text-slate-700">
               <input
                 type="checkbox"
                 disabled={disabled}
@@ -413,7 +449,7 @@ function FieldInput({
                       : selected.filter((current) => current !== option.value),
                   )
                 }
-                className="size-4 accent-red-700"
+                className="size-5 accent-emerald-700"
               />
               {option.label}
             </label>
@@ -424,8 +460,8 @@ function FieldInput({
   }
 
   return (
-    <label htmlFor={id} className={field.type === "textarea" ? "sm:col-span-2" : undefined}>
-      <span className="text-sm font-medium">{field.label}</span>
+    <label htmlFor={id} className={field.type === "textarea" ? "md:col-span-2" : undefined}>
+      <span className="block text-base font-semibold leading-6 text-slate-800">{field.label}</span>
       {field.type === "select" ? (
         <select
           id={id}

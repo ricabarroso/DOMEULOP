@@ -88,7 +88,7 @@ export default function PasswordResetForm() {
     }
   };
 
-  const inputClass = "w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-950 outline-none focus:border-red-600";
+  const inputClass = "w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-950 outline-none focus:border-emerald-600";
 
   if (updated) {
     return (
@@ -103,7 +103,7 @@ export default function PasswordResetForm() {
         )}
         <Link
           href="/login"
-          className="block w-full rounded-xl bg-red-700 px-5 py-3 text-center font-semibold text-white transition hover:bg-red-800"
+          className="block w-full rounded-xl bg-emerald-700 px-5 py-3 text-center font-semibold text-white transition hover:bg-emerald-800"
         >
           Voltar para entrar
         </Link>
@@ -140,7 +140,7 @@ export default function PasswordResetForm() {
       <button
         type="submit"
         disabled={!ready || loading}
-        className="w-full rounded-xl bg-red-700 px-5 py-3 font-semibold text-white transition hover:bg-red-800 disabled:cursor-wait disabled:opacity-60"
+        className="w-full rounded-xl bg-emerald-700 px-5 py-3 font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-wait disabled:opacity-60"
       >
         {loading ? "Aguarde…" : "Alterar senha"}
       </button>

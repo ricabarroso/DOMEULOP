@@ -95,7 +95,7 @@ export default function EmailSignIn() {
     }
   };
 
-  const inputClass = "w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-950 outline-none focus:border-red-600";
+  const inputClass = "w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-950 outline-none focus:border-emerald-600";
 
   return (
     <form onSubmit={submit} className="space-y-4">
@@ -127,7 +127,7 @@ export default function EmailSignIn() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-xl bg-red-700 px-5 py-3 font-semibold text-white transition hover:bg-red-800 disabled:cursor-wait disabled:opacity-60"
+        className="w-full rounded-xl bg-emerald-700 px-5 py-3 font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-wait disabled:opacity-60"
       >
         {loading
           ? "Aguarde…"
@@ -145,7 +145,7 @@ export default function EmailSignIn() {
             setError("");
             setNotice("");
           }}
-          className="w-full text-sm font-semibold text-red-800 hover:underline"
+          className="w-full text-sm font-semibold text-emerald-800 hover:underline"
         >
           Esqueci minha senha
         </button>
@@ -157,7 +157,7 @@ export default function EmailSignIn() {
           setError("");
           setNotice("");
         }}
-        className="w-full text-sm font-semibold text-red-800 hover:underline"
+        className="w-full text-sm font-semibold text-emerald-800 hover:underline"
       >
         {mode === "signup" ? "Já tenho conta" : "Voltar para entrar"}
       </button>

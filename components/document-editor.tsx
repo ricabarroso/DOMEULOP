@@ -752,7 +752,7 @@ export default function DocumentEditor({
           <div>
             <Link
               href="/"
-              className={`text-sm font-medium ${isApac ? "text-red-800" : "text-emerald-800"} hover:underline`}
+              className="text-sm font-medium text-emerald-800 hover:underline"
             >
               ← Todos os documentos
             </Link>
@@ -762,22 +762,14 @@ export default function DocumentEditor({
             <button
               type="button"
               onClick={clearSharedData}
-              className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
-                isApac
-                  ? "border-red-300 text-red-900 hover:bg-red-50"
-                  : "border-emerald-300 text-emerald-900 hover:bg-emerald-50"
-              }`}
+              className="rounded-xl border border-emerald-300 px-4 py-3 text-sm font-semibold text-emerald-900 hover:bg-emerald-50"
             >
               Limpar dados compartilhados
             </button>
             <button
               type="button"
               onClick={handleOpenPdf}
-              className={`rounded-xl px-5 py-3 font-semibold text-white transition focus-visible:outline-2 focus-visible:outline-offset-2 ${
-                isApac
-                  ? "bg-red-700 hover:bg-red-800 focus-visible:outline-red-600"
-                  : "bg-emerald-700 hover:bg-emerald-800 focus-visible:outline-emerald-600"
-              }`}
+              className="rounded-xl bg-emerald-700 px-5 py-3 font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
             >
               Abrir PDF para visualizar / imprimir
             </button>
@@ -814,15 +806,15 @@ export default function DocumentEditor({
                     <SisregImportButton onImport={updateSharedData} />
                   </div>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <Field label="Paciente" value={form.paciente} list="patient-name-suggestions" onChange={(value) => updateDocumentField("paciente", value)} accent="green" />
-                    <Field label="Nascimento" type="date" value={form.nascimento} onChange={(value) => updateDocumentField("nascimento", value)} accent="green" />
-                    <Field label="CPF do paciente" value={form.cpf} onChange={(value) => updateDocumentField("cpf", formatCpf(value))} accent="green" />
-                    <Field label="Profissional" value={form.profissional} list="professional-suggestions" onChange={handleProfessionalNameChange} accent="green" />
-                    <Field label="CRM" value={form.crm} list="crm-suggestions" onChange={handleCrmChange} accent="green" />
-                    <Field label="Cidade/estado" value={form.cidadeEstado} list="city-suggestions" onChange={(value) => updateDocumentField("cidadeEstado", value)} accent="green" />
-                    <Field label="Data do documento" type="date" value={form.dataDocumento || currentDate} onChange={(value) => setForm((prev) => ({ ...prev, dataDocumento: value }))} accent="green" />
-                    <Field label="Estabelecimento de saúde" value={form.nomeEstabelecimento} list="institution-suggestions" onChange={handleInstitutionNameChange} accent="green" />
-                    <Field label="CNES" value={form.cnes} list="cnes-suggestions" onChange={handleCnesChange} accent="green" />
+                    <Field label="Paciente" value={form.paciente} list="patient-name-suggestions" onChange={(value) => updateDocumentField("paciente", value)} />
+                    <Field label="Nascimento" type="date" value={form.nascimento} onChange={(value) => updateDocumentField("nascimento", value)} />
+                    <Field label="CPF do paciente" value={form.cpf} onChange={(value) => updateDocumentField("cpf", formatCpf(value))} />
+                    <Field label="Profissional" value={form.profissional} list="professional-suggestions" onChange={handleProfessionalNameChange} />
+                    <Field label="CRM" value={form.crm} list="crm-suggestions" onChange={handleCrmChange} />
+                    <Field label="Cidade/estado" list="city-suggestions" value={form.cidadeEstado} onChange={(value) => updateDocumentField("cidadeEstado", value)} />
+                    <Field label="Data do documento" type="date" value={form.dataDocumento || currentDate} onChange={(value) => setForm((prev) => ({ ...prev, dataDocumento: value }))} />
+                    <Field label="Estabelecimento de saúde" value={form.nomeEstabelecimento} list="institution-suggestions" onChange={handleInstitutionNameChange} />
+                    <Field label="CNES" value={form.cnes} list="cnes-suggestions" onChange={handleCnesChange} />
                   </div>
                 </>
               )}
@@ -915,7 +907,6 @@ export default function DocumentEditor({
                             value={form.compoundingText}
                             onChange={(value) => setForm((previous) => ({ ...previous, compoundingText: value }))}
                             multiline
-                            accent="green"
                           />
                         ) : (
                           <>
@@ -963,21 +954,18 @@ export default function DocumentEditor({
                                 value={medication.apresentacao}
                                 list="saved-medicamento-apresentacao"
                                 onChange={(value) => updateMedication(index, "apresentacao", value)}
-                                accent="green"
                               />
                               <Field
                                 label="Posologia e modo de usar"
                                 value={medication.posologia}
                                 onChange={(value) => updateMedication(index, "posologia", value)}
                                 multiline
-                                accent="green"
                               />
                               <Field
                                 label="Quantidade a dispensar (ex.: 1 caixa)"
                                 value={medication.quantidade}
                                 list="saved-medicamento-quantidade"
                                 onChange={(value) => updateMedication(index, "quantidade", value)}
-                                accent="green"
                               />
                             </div>
                           </fieldset>
@@ -1010,20 +998,20 @@ export default function DocumentEditor({
                   )}
                   {documentType === "atestado" && (
                     <>
-                      <Field label="Período de afastamento" value={form.periodo} onChange={(value) => setForm((prev) => ({ ...prev, periodo: value }))} accent="green" />
-                      <Field label="Motivo / justificativa" value={form.motivo} onChange={(value) => setForm((prev) => ({ ...prev, motivo: value }))} multiline accent="green" />
+                      <Field label="Período de afastamento" value={form.periodo} onChange={(value) => setForm((prev) => ({ ...prev, periodo: value }))} />
+                      <Field label="Motivo / justificativa" value={form.motivo} onChange={(value) => setForm((prev) => ({ ...prev, motivo: value }))} multiline />
                     </>
                   )}
                   {documentType === "exame" && (
                     <>
-                      <Field label="Motivo da solicitação" value={form.motivo} onChange={(value) => setForm((prev) => ({ ...prev, motivo: value }))} multiline accent="green" />
+                      <Field label="Motivo da solicitação" value={form.motivo} onChange={(value) => setForm((prev) => ({ ...prev, motivo: value }))} multiline />
                       <div>
-                        <Field label="Exames solicitados" value={form.exames} onChange={(value) => setForm((prev) => ({ ...prev, exames: value }))} multiline accent="green" />
+                        <Field label="Exames solicitados" value={form.exames} onChange={(value) => setForm((prev) => ({ ...prev, exames: value }))} multiline />
                         <SavedChips field="exame" label="Exames usados antes (toque para adicionar)" onPick={(value) => appendSavedLine("exames", value)} />
                       </div>
                     </>
                   )}
-                  <Field label="Observações" value={form.observacoes} onChange={(value) => setForm((prev) => ({ ...prev, observacoes: value }))} multiline accent="green" />
+                  <Field label="Observações" value={form.observacoes} onChange={(value) => setForm((prev) => ({ ...prev, observacoes: value }))} multiline />
                 </div>
               )}
             </div>
@@ -1036,7 +1024,7 @@ export default function DocumentEditor({
           >
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className={`text-sm font-semibold uppercase tracking-[0.2em] ${isApac ? "text-red-700" : "text-emerald-700"}`}>Pré-visualização</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">Pré-visualização</p>
                 <h2 id="document-preview-title" className="mt-2 text-xl font-semibold">
                   {documentTitles[documentType]}
                 </h2>
@@ -1086,7 +1074,6 @@ function Field({
   type = "text",
   multiline = false,
   list,
-  accent = "red",
 }: {
   label: string;
   value: string;
@@ -1094,11 +1081,8 @@ function Field({
   type?: string;
   multiline?: boolean;
   list?: string;
-  accent?: "red" | "green";
 }) {
-  const focusClasses = accent === "green"
-    ? "focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-    : "focus:border-red-500 focus:ring-2 focus:ring-red-200";
+  const focusClasses = "focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200";
   return (
     <label className="block text-sm font-medium text-slate-700">
       <span className="mb-2 block">{label}</span>
@@ -1183,7 +1167,7 @@ function ApacFields({
           <Field label="6. Data de nascimento" type="date" value={form.nascimento} onChange={(value) => update("nascimento", value)} />
           <label className="block text-sm font-medium text-slate-700">
             <span className="mb-2 block">7. Sexo</span>
-            <select value={form.sexo} onChange={(event) => update("sexo", event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200">
+            <select value={form.sexo} onChange={(event) => update("sexo", event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200">
               <option value="">Selecione</option>
               <option value="F">Feminino</option>
               <option value="M">Masculino</option>
@@ -1308,7 +1292,7 @@ function SelectField({ label, value, onChange }: { label: string; value: string;
   return (
     <label className="block text-sm font-medium text-slate-700">
       <span className="mb-2 block">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200">
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200">
         <option value="">Selecione</option>
         <option value="CNS">CNS</option>
         <option value="CPF">CPF</option>

@@ -150,7 +150,7 @@ export default function AccountDashboard() {
   if (!email) {
     return (
       <div className="flex flex-wrap items-center gap-3">
-        <Link href="/login" className="rounded-xl bg-red-700 px-4 py-2 font-semibold text-white hover:bg-red-800">
+        <Link href="/login" className="rounded-xl bg-emerald-700 px-4 py-2 font-semibold text-white hover:bg-emerald-800">
           Entrar com Google ou Apple
         </Link>
         {message && <p role="alert" className="text-sm text-red-800">{message}</p>}
@@ -160,24 +160,24 @@ export default function AccountDashboard() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
         <div>
-          <p className="font-semibold text-red-950">{email}</p>
-          <p className="text-sm text-red-800">
+          <p className="font-semibold text-emerald-950">{email}</p>
+          <p className="text-sm text-emerald-800">
             {approved ? "Acesso autorizado." : "Cadastro aguardando aprovação."}
           </p>
         </div>
-        <button type="button" onClick={signOut} className="rounded-lg border border-red-300 px-3 py-2 text-sm font-semibold text-red-900 hover:bg-white">
+        <button type="button" onClick={signOut} className="rounded-lg border border-emerald-300 px-3 py-2 text-sm font-semibold text-emerald-900 hover:bg-white">
           Sair
         </button>
       </div>
 
       {approved && (
         <nav aria-label="Documentos disponíveis" className="flex flex-wrap gap-3">
-          <Link href="/receita" className="rounded-xl bg-red-700 px-4 py-2 font-semibold text-white hover:bg-red-800">Receita</Link>
-          <Link href="/atestado" className="rounded-xl border border-red-300 px-4 py-2 font-semibold text-red-900 hover:bg-red-50">Atestado</Link>
-          <Link href="/pedido-exames" className="rounded-xl border border-red-300 px-4 py-2 font-semibold text-red-900 hover:bg-red-50">Pedido de exames</Link>
-          <Link href="/apac" className="rounded-xl border border-red-300 px-4 py-2 font-semibold text-red-900 hover:bg-red-50">APAC</Link>
+          <Link href="/receita" className="rounded-xl bg-emerald-700 px-4 py-2 font-semibold text-white hover:bg-emerald-800">Receita</Link>
+          <Link href="/atestado" className="rounded-xl border border-emerald-300 px-4 py-2 font-semibold text-emerald-900 hover:bg-emerald-50">Atestado</Link>
+          <Link href="/pedido-exames" className="rounded-xl border border-emerald-300 px-4 py-2 font-semibold text-emerald-900 hover:bg-emerald-50">Pedido de exames</Link>
+          <Link href="/apac" className="rounded-xl border border-emerald-300 px-4 py-2 font-semibold text-emerald-900 hover:bg-emerald-50">APAC</Link>
         </nav>
       )}
 

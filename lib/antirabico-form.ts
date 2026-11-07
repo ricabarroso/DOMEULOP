@@ -174,7 +174,7 @@ export const antirabicoSections: readonly AntirabicoSection[] = [
       { key: "exposureStatus", label: "32. Tipo de Exposição ao Vírus Rábico", type: "select", options: yesNoUnknown },
       {
         key: "exposureTypes",
-        label: "32. Tipo de exposição",
+        label: "Formas de exposição",
         type: "checkboxes",
         options: [
           { value: "indirect", label: "Contato indireto" },
@@ -196,7 +196,7 @@ export const antirabicoSections: readonly AntirabicoSection[] = [
       },
       {
         key: "locations",
-        label: "33. Localização do ferimento",
+        label: "Locais do ferimento",
         type: "checkboxes",
         options: [
           { value: "mucosa", label: "Mucosa" },
@@ -221,7 +221,7 @@ export const antirabicoSections: readonly AntirabicoSection[] = [
       { key: "injuryStatus", label: "35. Tipo de Ferimento", type: "select", options: yesNoUnknown },
       {
         key: "injuryTypes",
-        label: "35. Tipo de ferimento",
+        label: "Tipos de ferimento",
         type: "checkboxes",
         options: [
           { value: "deep", label: "Profundo" },
@@ -233,7 +233,7 @@ export const antirabicoSections: readonly AntirabicoSection[] = [
       { key: "previousTreatment", label: "37. Tem Antecedentes de Tratamento Anti-Rábico?", type: "select", options: yesNoUnknown },
       {
         key: "previousTreatmentTypes",
-        label: "37. Tipo de tratamento anterior",
+        label: "Tipo de tratamento anterior",
         type: "checkboxes",
         options: [
           { value: "pre-exposure", label: "Pré-Exposição" },
@@ -355,7 +355,7 @@ export const antirabicoSections: readonly AntirabicoSection[] = [
       ] },
       {
         key: "infiltrationExtent",
-        label: "56. Infiltração",
+        label: "Extensão da infiltração",
         type: "checkboxes",
         options: [
           { value: "total", label: "Total" },

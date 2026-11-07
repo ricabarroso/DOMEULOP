@@ -48,7 +48,7 @@ export default function OAuthSignIn() {
         type="button"
         disabled={loadingProvider !== null}
         onClick={() => signIn("google")}
-        className="w-full rounded-xl bg-red-700 px-5 py-3 font-semibold text-white transition hover:bg-red-800 disabled:cursor-wait disabled:opacity-60"
+        className="w-full rounded-xl bg-emerald-700 px-5 py-3 font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-wait disabled:opacity-60"
       >
         {loadingProvider === "google" ? "Conectando…" : "Continuar com Google"}
       </button>
