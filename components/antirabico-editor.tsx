@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useDocumentSession } from "@/components/document-session-provider";
 import SavedDatalists, { findSavedByValue, normalizeSaved, parseSavedDetail } from "@/components/saved-datalists";
 import SisregImportButton from "@/components/sisreg-import-button";
-import SisregPatientLookup from "@/components/sisreg-patient-lookup";
 import {
   antirabicoSections,
   initialAntirabicoValues,
@@ -313,14 +312,7 @@ export default function AntirabicoEditor() {
             confirme a versão e as orientações vigentes antes de usar.
           </p>
           <div className="mt-4">
-            <div className="space-y-3">
-              <SisregImportButton onImport={updateSharedData} />
-              <SisregPatientLookup
-                unitName={typeof values.notificationUnit === "string" ? values.notificationUnit : ""}
-                unitCnes={cnes}
-                onImport={updateSharedData}
-              />
-            </div>
+            <SisregImportButton onImport={updateSharedData} />
           </div>
         </header>
 

@@ -16,7 +16,6 @@ import SavedDatalists, {
 } from "@/components/saved-datalists";
 import PrescriptionTemplateManager from "@/components/prescription-template-manager";
 import SisregImportButton from "@/components/sisreg-import-button";
-import SisregPatientLookup from "@/components/sisreg-patient-lookup";
 import MedicationAutocomplete from "@/components/medication-autocomplete";
 import { medicationDisplayName, type MedicationCatalogEntry } from "@/lib/medication-catalog";
 
@@ -804,16 +803,7 @@ export default function DocumentEditor({
                 <>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <h2 className="text-lg font-semibold">Dados do atendimento</h2>
-                    <div className="flex flex-wrap gap-2">
-                      <SisregImportButton onImport={updateSharedData} />
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <SisregPatientLookup
-                      unitName={form.nomeEstabelecimento}
-                      unitCnes={form.cnes}
-                      onImport={updateSharedData}
-                    />
+                    <SisregImportButton onImport={updateSharedData} />
                   </div>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <Field label="Paciente" value={form.paciente} list="patient-name-suggestions" onChange={(value) => updateDocumentField("paciente", value)} />
@@ -1169,14 +1159,7 @@ function ApacFields({
       </FormSection>
 
       <FormSection title="Identificação do paciente">
-        <div className="mb-3 space-y-3">
-          <SisregImportButton onImport={onImportPatient} />
-          <SisregPatientLookup
-            unitName={form.nomeEstabelecimento}
-            unitCnes={form.cnes}
-            onImport={onImportPatient}
-          />
-        </div>
+        <div className="mb-3"><SisregImportButton onImport={onImportPatient} /></div>
         <div className="grid gap-4 md:grid-cols-3">
           <div className="md:col-span-2"><Field label="3. Nome do paciente" value={form.paciente} list="patient-name-suggestions" onChange={(value) => update("paciente", value)} /></div>
           <Field label="4. Nº do prontuário" value={form.numeroProntuario} onChange={(value) => update("numeroProntuario", value)} />

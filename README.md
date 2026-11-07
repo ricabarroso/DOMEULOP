@@ -68,15 +68,7 @@ O arquivo compactado em `data/anvisa-medicamentos.json.gz` inclui nome, princíp
 
 ## Importação de dados do paciente pelo SISREG
 
-Nos documentos que têm o bloco "Dados do atendimento" ou "Identificação do paciente" (receita, atestado, pedido de exames, APAC e ficha antirrábica), há duas formas de importar dados do SISREG. A consulta direta pesquisa pelo CPF/CNS e exige consentimento para cada busca; a pesquisa por nome ainda não é oferecida pela API. O botão "Importar do SISREG" continua disponível para copiar os dados de um paciente já localizado na tela "Consulta ao Cadastro de Pacientes SUS" do SISREG III.
-
-A consulta direta envia o CPF/CNS informado, o nome da unidade e, quando preenchido, seu CNES à API por uma rota autenticada do próprio aplicativo. A chave da API fica somente no servidor. Para habilitar a integração:
-
-1. Obtenha do operador da API o valor de autorização e o formato exigido (por exemplo, se inclui o prefixo `Bearer`).
-2. Na Vercel, abra o projeto `domeulop` → **Settings → Environment Variables** e crie `SISREG_API_AUTHORIZATION` com esse valor nos ambientes de produção e preview necessários. Não use o prefixo `NEXT_PUBLIC_` e não envie a chave em mensagens ou commits.
-3. Salve a variável e publique um novo deploy. Para desenvolvimento local, adicione a variável ao `.env.local`, sem versioná-lo.
-
-O endpoint usa `https://crawler-prod.care4all.com.br`, cujo certificado HTTPS foi validado; não use o IP `34.160.15.195` diretamente, pois o certificado não corresponde ao IP. Sem a chave configurada, a consulta direta retorna uma mensagem de indisponibilidade, sem tentar enviar dados. Ao aplicar um cadastro retornado, ele pode ser incluído na lista de pacientes salvos da conta.
+Nos documentos que têm o bloco "Dados do atendimento" ou "Identificação do paciente" (receita, atestado, pedido de exames, APAC e ficha antirrábica), o botão "Importar do SISREG" oferece um favorito (bookmarklet) para trazer os dados de um paciente já localizado na tela "Consulta ao Cadastro de Pacientes SUS" do SISREG III, usando a própria sessão do usuário logado no portal.
 
 Como usar:
 
@@ -85,14 +77,14 @@ Como usar:
 3. Clique no favorito: ele lê a tela de resultado e copia os dados para a área de transferência (ou mostra um texto para copiar manualmente, se o navegador bloquear o acesso direto).
 4. Volte ao aplicativo, cole o conteúdo na caixa de texto do painel "Importar do SISREG" e clique em "Aplicar dados".
 
-Nesse processo manual, nada é enviado a um servidor: o favorito roda inteiramente no navegador do usuário, usando a sessão dele no SISREG, e os dados colados só preenchem os campos do formulário em memória. A consulta direta descrita acima é diferente: ela encaminha o identificador consultado e a unidade à API autorizada do SISREG. Em ambos os casos, o usuário deve ter autorização para acessar e tratar os dados e conferir os campos preenchidos.
+Nada é enviado a um servidor nesse processo: o favorito roda inteiramente no navegador do usuário, usando a sessão dele no SISREG, e os dados colados só preenchem os campos do formulário em memória. O uso depende do acesso que o próprio usuário já possui no SISREG e deve respeitar os termos de uso do sistema e o sigilo dos dados de pacientes.
 
 ## Regras de privacidade
 
 - O formulário solicita apenas os dados indispensáveis para cada documento.
 - Sugere-se evitar armazenamento em planilhas ou canais inseguros.
-- A consulta direta ao SISREG só ocorre após consentimento explícito e exige CPF/CNS completo; a busca por nome não está implementada na API.
-- Os dados do paciente são compartilhados entre documentos durante a sessão. Pacientes lembrados para sugestões podem ser gravados no Supabase por conta, protegidos pelas políticas RLS; não são compartilhados entre contas. O CNS do paciente não é enviado ao CNES.
+- Não há busca automática de CPF.
+- Os dados preenchidos no documento ficam na memória da sessão. Para agilizar preenchimentos futuros, sugestões de pacientes e profissionais podem ser salvas na conta do usuário no Supabase, protegidas por regras de acesso por usuário; não são compartilhadas entre contas.
 - O PDF da bula é lido no navegador do usuário; o arquivo e o texto extraído não são enviados nem salvos pelo aplicativo.
 - Os modelos de prescrição persistidos contêm somente doença/diagnóstico e dados da prescrição. Eles são vinculados à conta autenticada e protegidos por políticas RLS para que cada usuário acesse somente os próprios modelos.
 - O login é fornecido pelo Supabase Auth com e-mail e senha (confirmação de e-mail obrigatória). Os três endereços autorizados abaixo têm acesso imediato e podem aprovar novos cadastros ou revogar o acesso de outras contas; outros usuários aguardam aprovação.
