@@ -171,7 +171,7 @@ export const antirabicoSections: readonly AntirabicoSection[] = [
   {
     title: "Antecedentes epidemiológicos",
     fields: [
-      { key: "exposureStatus", label: "32. Tipo de Exposição ao Vírus Rábico", type: "select", options: yesNoUnknown },
+      { key: "exposureStatus", label: "32. Houve exposição ao vírus rábico?", type: "select", options: yesNoUnknown },
       {
         key: "exposureTypes",
         label: "Formas de exposição",
@@ -186,7 +186,7 @@ export const antirabicoSections: readonly AntirabicoSection[] = [
       },
       {
         key: "locationStatus",
-        label: "33. Localização",
+        label: "33. O local do ferimento foi identificado?",
         type: "select",
         options: [
           { value: "1", label: "1 — Sim" },
@@ -218,10 +218,10 @@ export const antirabicoSections: readonly AntirabicoSection[] = [
           { value: "9", label: "9 — Ignorado" },
         ],
       },
-      { key: "injuryStatus", label: "35. Tipo de Ferimento", type: "select", options: yesNoUnknown },
+      { key: "injuryStatus", label: "35. O tipo de ferimento foi identificado?", type: "select", options: yesNoUnknown },
       {
         key: "injuryTypes",
-        label: "Tipos de ferimento",
+        label: "35. Quais tipos de ferimento? (marque todos aplicáveis)",
         type: "checkboxes",
         options: [
           { value: "deep", label: "Profundo" },
@@ -336,8 +336,8 @@ export const antirabicoSections: readonly AntirabicoSection[] = [
           { value: "2", label: "2 — Não" },
         ],
       },
-      { key: "adverseVaccine", label: "52. Evento Adverso à Vacina", type: "select", options: yesNoUnknown },
-      { key: "serumIndication", label: "53. Indicação do Soro Anti-Rábico", type: "select", options: yesNoUnknown },
+      { key: "adverseVaccine", label: "52. Houve evento adverso à vacina?", type: "select", options: yesNoUnknown },
+      { key: "serumIndication", label: "53. Há indicação de soro antirrábico?", type: "select", options: yesNoUnknown },
       { key: "patientWeight", label: "54. Peso do Paciente (Kg.)", type: "text", maxLength: 6 },
       { key: "serumAmount", label: "55. Quantidade de Soro Aplicada (ml)", type: "text", maxLength: 8 },
       {
@@ -349,7 +349,7 @@ export const antirabicoSections: readonly AntirabicoSection[] = [
           { value: "2", label: "2 — Homólogo" },
         ],
       },
-      { key: "serumInfiltration", label: "56. Infiltração de Soro no(s) Local(is) do(s) Ferimento(s)", type: "select", options: [
+      { key: "serumInfiltration", label: "56. O soro foi infiltrado no(s) local(is) do(s) ferimento(s)?", type: "select", options: [
         { value: "1", label: "1 — Sim" },
         { value: "2", label: "2 — Não" },
       ] },
@@ -365,7 +365,7 @@ export const antirabicoSections: readonly AntirabicoSection[] = [
       { key: "serumProducer", label: "57. Laboratório Produtor do Soro Anti-Rábico", type: "select", options: vaccineProducers },
       { key: "otherSerumProducer", label: "57. Outro laboratório (especificar)", type: "text", maxLength: 60 },
       { key: "serumBatch", label: "58. Número da Partida", type: "text", maxLength: 30 },
-      { key: "adverseSerum", label: "59. Evento Adverso ao Soro Anti-Rábico", type: "select", options: yesNoUnknown },
+      { key: "adverseSerum", label: "59. Houve evento adverso ao soro antirrábico?", type: "select", options: yesNoUnknown },
       { key: "caseClosureDate", label: "60. Data do Encerramento do Caso", type: "date" },
     ],
   },
