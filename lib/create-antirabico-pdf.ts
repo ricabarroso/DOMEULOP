@@ -134,6 +134,37 @@ const checkboxPlacements: Record<string, Record<string, MarkPlacement>> = {
   },
 };
 
+const characterGridFields: Record<string, {
+  slots: number;
+  digitsOnly?: boolean;
+  x?: number;
+  width?: number;
+  baseline?: number;
+}> = {
+  notificationDate: { slots: 8 },
+  notificationState: { slots: 2, digitsOnly: false },
+  notificationIbge: { slots: 7 },
+  notificationCnes: { slots: 7 },
+  attendanceDate: { slots: 8 },
+  birthDate: { slots: 8, x: 444, width: 115.2, baseline: 642.6 },
+  age: { slots: 3 },
+  patientCns: { slots: 15, x: 61.8, width: 171.9, baseline: 552 },
+  residenceState: { slots: 2, digitsOnly: false },
+  residenceIbge: { slots: 7 },
+  streetCode: { slots: 10 },
+  cep: { slots: 8, x: 451.7, width: 115.6, baseline: 444.3 },
+  phone: { slots: 11, x: 64.83, width: 159, baseline: 420.7 },
+  exposureDate: { slots: 8 },
+  dosesApplied: { slots: 2 },
+  vaccineExpiry: { slots: 8 },
+  doseDate1: { slots: 8 },
+  doseDate2: { slots: 8 },
+  doseDate3: { slots: 8 },
+  doseDate4: { slots: 8 },
+  doseDate5: { slots: 8 },
+  caseClosureDate: { slots: 8 },
+};
+
 function printableValue(value: AntirabicoValue | undefined): string {
   if (typeof value !== "string") return "";
   const trimmed = value.trim();
@@ -148,11 +179,10 @@ function drawTextInBox(
   placement: TextPlacement,
   font: Awaited<ReturnType<PDFDocument["embedFont"]>>,
   bold = false,
-  verticalOffset = 0,
 ) {
   const height = placement.height / 2;
   const width = placement.width / 2;
-  let fontSize = Math.min(10, Math.max(7, height * 0.9));
+  let fontSize = Math.min(9, Math.max(6, height * 0.72));
   while (font.widthOfTextAtSize(text, fontSize) > width - 2 && fontSize > 5) {
     fontSize -= 0.25;
   }
@@ -160,7 +190,7 @@ function drawTextInBox(
     throw new Error(`O conteúdo excede o espaço impresso reservado para: ${text}`);
   }
   const x = placement.x / 2 + 1;
-  const y = page.getHeight() - (placement.y + verticalOffset) / 2 - fontSize * 0.8;
+  const y = page.getHeight() - placement.y / 2 - fontSize * 0.8;
   page.drawText(text, {
     x,
     y,
@@ -169,6 +199,42 @@ function drawTextInBox(
     color: rgb(0.05, 0.05, 0.05),
     opacity: 0.95,
     ...(bold ? { opacity: 1 } : {}),
+  });
+}
+
+function drawTextInCharacterGrid(
+  page: PDFPage,
+  text: string,
+  placement: TextPlacement,
+  grid: {
+    slots: number;
+    digitsOnly?: boolean;
+    x?: number;
+    width?: number;
+    baseline?: number;
+  },
+  font: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+) {
+  const characters = grid.digitsOnly === false
+    ? Array.from(text.toLocaleUpperCase("pt-BR"))
+    : text.replace(/\D/g, "").split("");
+  if (characters.length > grid.slots) {
+    throw new Error(`O conteúdo excede os ${grid.slots} quadradinhos disponíveis na ficha.`);
+  }
+
+  const cellWidth = (grid.width ?? placement.width / 2) / grid.slots;
+  const fontSize = Math.min(8, Math.max(6, placement.height / 2 * 0.68));
+  const y = grid.baseline ?? page.getHeight() - placement.y / 2 - 13;
+  characters.forEach((character, index) => {
+    const x = (grid.x ?? placement.x / 2) + index * cellWidth + (cellWidth - font.widthOfTextAtSize(character, fontSize)) / 2;
+    page.drawText(character, {
+      x,
+      y,
+      size: fontSize,
+      font,
+      color: rgb(0.05, 0.05, 0.05),
+      opacity: 0.95,
+    });
   });
 }
 
@@ -238,7 +304,13 @@ export async function createAntirabicoPdf(values: AntirabicoValues): Promise<Uin
   for (const [key, placement] of Object.entries(textPlacements)) {
     if (key === "observations") continue;
     const value = printableValue(values[key]);
-    if (value) drawTextInBox(pages[placement.page], value, placement, font, false, 8);
+    if (!value) continue;
+    const grid = characterGridFields[key];
+    if (grid) {
+      drawTextInCharacterGrid(pages[placement.page], value, placement, grid, font);
+    } else {
+      drawTextInBox(pages[placement.page], value, placement, font);
+    }
   }
 
   for (const [key, placement] of Object.entries(codePlacements)) {
