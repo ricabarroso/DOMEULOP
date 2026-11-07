@@ -218,12 +218,14 @@ function drawTextInCharacterGrid(
   const characters = grid.digitsOnly === false
     ? Array.from(text.toLocaleUpperCase("pt-BR"))
     : text.replace(/\D/g, "").split("");
-  if (characters.length > grid.slots) {
-    throw new Error(`O conteúdo excede os ${grid.slots} quadradinhos disponíveis na ficha.`);
-  }
-
-  const cellWidth = (grid.width ?? placement.width / 2) / grid.slots;
-  const fontSize = Math.min(8, Math.max(6, placement.height / 2 * 0.68));
+  const cellCount = Math.max(grid.slots, characters.length);
+  const cellWidth = (grid.width ?? placement.width / 2) / cellCount;
+  const widestCharacter = Math.max(...characters.map((character) => font.widthOfTextAtSize(character, 1)), 0);
+  const fontSize = Math.min(
+    8,
+    Math.max(1, (cellWidth * 0.72) / Math.max(widestCharacter, 0.01)),
+    Math.max(6, placement.height / 2 * 0.68),
+  );
   const y = grid.baseline ?? page.getHeight() - placement.y / 2 - 13;
   characters.forEach((character, index) => {
     const x = (grid.x ?? placement.x / 2) + index * cellWidth + (cellWidth - font.widthOfTextAtSize(character, fontSize)) / 2;
