@@ -60,7 +60,7 @@ export default function MedicationAutocomplete({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  onSelect: (entry: MedicationCatalogEntry) => void;
+  onSelect: (entry: MedicationCatalogEntry) => boolean;
   list?: string;
 }) {
   const [results, setResults] = useState<MedicationCatalogEntry[]>([]);
@@ -70,16 +70,50 @@ export default function MedicationAutocomplete({
   const [warning, setWarning] = useState("");
   const [searchedQuery, setSearchedQuery] = useState("");
   const [selectedEntry, setSelectedEntry] = useState<MedicationCatalogEntry | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const listId = `medication-options-${useId().replace(/:/g, "")}`;
   const searchCanStart = hasThreeLetters(value.trim());
-  const selectedValue = useRef("");
+  const requestId = useRef(0);
+  const activeController = useRef<AbortController | null>(null);
+
+  const closeSuggestions = () => {
+    requestId.current += 1;
+    activeController.current?.abort();
+    activeController.current = null;
+    setIsOpen(false);
+    setSearchQuery("");
+    setResults([]);
+    setActiveIndex(-1);
+    setLoading(false);
+    setError("");
+    setWarning("");
+    setSearchedQuery("");
+  };
+
+  const startSearch = (query: string) => {
+    requestId.current += 1;
+    activeController.current?.abort();
+    activeController.current = null;
+    setIsOpen(true);
+    setSearchQuery(query);
+    setResults([]);
+    setActiveIndex(-1);
+    setLoading(false);
+    setError("");
+    setWarning("");
+    setSearchedQuery("");
+  };
 
   useEffect(() => {
-    const query = value.trim();
-    if (!hasThreeLetters(query) || query === selectedValue.current) return;
+    const query = searchQuery.trim();
+    if (!isOpen || !hasThreeLetters(query)) return;
 
+    const currentRequestId = requestId.current;
     const controller = new AbortController();
+    activeController.current = controller;
     const timer = window.setTimeout(async () => {
+      if (currentRequestId !== requestId.current) return;
       setLoading(true);
       setError("");
       try {
@@ -87,6 +121,7 @@ export default function MedicationAutocomplete({
           signal: controller.signal,
         });
         const payload = await response.json() as CatalogResponse;
+        if (controller.signal.aborted || currentRequestId !== requestId.current) return;
         if (!response.ok) throw new Error(payload.error || "Não foi possível pesquisar o catálogo.");
         const suggestions = [...payload.results, ...(payload.anvisaResults ?? [])];
         setResults(suggestions);
@@ -94,32 +129,27 @@ export default function MedicationAutocomplete({
         setActiveIndex(suggestions.length > 0 ? 0 : -1);
         setSearchedQuery(query);
       } catch (requestError) {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || currentRequestId !== requestId.current) return;
         setResults([]);
         setWarning("");
         setSearchedQuery(query);
         setError(requestError instanceof Error ? requestError.message : "Não foi possível pesquisar o catálogo.");
       } finally {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted && currentRequestId === requestId.current) setLoading(false);
       }
     }, 250);
 
     return () => {
       window.clearTimeout(timer);
       controller.abort();
+      if (activeController.current === controller) activeController.current = null;
     };
-  }, [value]);
+  }, [isOpen, searchQuery]);
 
   const selectMedication = (entry: MedicationCatalogEntry) => {
-    selectedValue.current = medicationDisplayName(entry);
+    if (onSelect(entry) === false) return;
     setSelectedEntry(entry);
-    setResults([]);
-    setSearchedQuery("");
-    setError("");
-    setWarning("");
-    setLoading(false);
-    setActiveIndex(-1);
-    onSelect(entry);
+    closeSuggestions();
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -133,8 +163,7 @@ export default function MedicationAutocomplete({
       event.preventDefault();
       selectMedication(results[activeIndex]);
     } else if (event.key === "Escape") {
-      setResults([]);
-      setActiveIndex(-1);
+      closeSuggestions();
     }
   };
 
@@ -147,27 +176,24 @@ export default function MedicationAutocomplete({
           type="text"
           role="combobox"
           aria-autocomplete="list"
-          aria-expanded={searchCanStart && results.length > 0}
+          aria-expanded={isOpen && searchCanStart && results.length > 0}
           aria-controls={listId}
           aria-activedescendant={activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
           autoComplete="off"
           value={value}
           list={list}
+          onFocus={() => startSearch(value)}
+          onBlur={closeSuggestions}
           onChange={(event) => {
-            selectedValue.current = "";
             setSelectedEntry(null);
             onChange(event.target.value);
-            setResults([]);
-            setError("");
-            setSearchedQuery("");
-            setActiveIndex(-1);
-            setLoading(false);
+            startSearch(event.target.value);
           }}
           onKeyDown={onKeyDown}
           placeholder="Digite ao menos 3 letras"
           className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
         />
-        {searchCanStart && results.length > 0 && (
+        {isOpen && searchCanStart && results.length > 0 && (
           <ul id={listId} role="listbox" aria-label="Sugestões de medicamentos" className="absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
             {results.map((entry, index) => (
               <li
@@ -175,7 +201,7 @@ export default function MedicationAutocomplete({
                 id={`${listId}-${index}`}
                 role="option"
                 aria-selected={index === activeIndex}
-                onMouseDown={(event) => event.preventDefault()}
+                onPointerDown={(event) => event.preventDefault()}
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => selectMedication(entry)}
                 className={`cursor-pointer px-3 py-2 text-sm ${index === activeIndex ? "bg-emerald-50" : "hover:bg-slate-50"}`}
@@ -201,11 +227,11 @@ export default function MedicationAutocomplete({
           </ul>
         )}
       </div>
-      {loading && searchCanStart && <p role="status" className="mt-1 text-xs text-slate-600">Pesquisando nos catálogos…</p>}
-      {!searchCanStart && value.trim().length > 0 && <p className="mt-1 text-xs text-slate-600">Digite ao menos 3 letras para buscar nos catálogos.</p>}
-      {searchCanStart && error && <p role="alert" className="mt-1 text-xs text-red-700">{error}</p>}
-      {searchCanStart && warning && <p role="status" className="mt-1 text-xs text-amber-800">{warning} Os resultados dos demais catálogos continuam disponíveis.</p>}
-      {searchCanStart && searchedQuery === value.trim() && !loading && !error && results.length === 0 && (
+      {isOpen && loading && searchCanStart && <p role="status" className="mt-1 text-xs text-slate-600">Pesquisando nos catálogos…</p>}
+      {isOpen && !searchCanStart && value.trim().length > 0 && <p className="mt-1 text-xs text-slate-600">Digite ao menos 3 letras para buscar nos catálogos.</p>}
+      {isOpen && searchCanStart && error && <p role="alert" className="mt-1 text-xs text-red-700">{error}</p>}
+      {isOpen && searchCanStart && warning && <p role="status" className="mt-1 text-xs text-amber-800">{warning} Os resultados dos demais catálogos continuam disponíveis.</p>}
+      {isOpen && searchCanStart && searchedQuery === value.trim() && !loading && !error && results.length === 0 && (
         <p className="mt-1 text-xs text-slate-600">Nenhum resultado encontrado nos catálogos. Você ainda pode digitar o medicamento manualmente.</p>
       )}
       {selectedEntry?.source === "anvisa" && (

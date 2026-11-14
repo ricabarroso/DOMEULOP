@@ -934,20 +934,64 @@ export default function DocumentEditor({
                                 value={medication.nome}
                                 list="saved-medicamento"
                                 onChange={(value) => updateMedication(index, "nome", value)}
-                                onSelect={(entry: MedicationCatalogEntry) => setForm((previous) => ({
-                                  ...previous,
-                                  medicamentos: previous.medicamentos.map((item, itemIndex) => itemIndex === index
-                                    ? {
-                                      ...item,
-                                      nome: medicationDisplayName(entry),
-                                      apresentacao: [entry.concentration, entry.pharmaceuticalForm, entry.supplyUnit]
-                                        .filter(Boolean)
-                                        .join(" — "),
-                                      posologia: "",
-                                      quantidade: "",
+                                onSelect={(entry: MedicationCatalogEntry) => {
+                                  const name = medicationDisplayName(entry);
+                                  const presentation = entry.source === "catmat"
+                                    ? [entry.concentration, entry.pharmaceuticalForm, entry.supplyUnit]
+                                      .filter(Boolean)
+                                      .join(" — ")
+                                    : "";
+                                  const sameMedication =
+                                    normalizeSuggestion(medication.nome) === normalizeSuggestion(name) &&
+                                    (!presentation ||
+                                      !medication.apresentacao.trim() ||
+                                      normalizeSuggestion(medication.apresentacao) === normalizeSuggestion(presentation));
+
+                                  if (sameMedication) {
+                                    if (
+                                      presentation &&
+                                      !medication.apresentacao.trim() &&
+                                      !medication.posologia.trim() &&
+                                      !medication.quantidade.trim()
+                                    ) {
+                                      setForm((previous) => ({
+                                        ...previous,
+                                        medicamentos: previous.medicamentos.map((item, itemIndex) => itemIndex === index
+                                          ? { ...item, apresentacao: presentation }
+                                          : item),
+                                      }));
                                     }
-                                    : item),
-                                }))}
+                                    return true;
+                                  }
+
+                                  const hasDetails = Boolean(
+                                    medication.apresentacao.trim() ||
+                                    medication.posologia.trim() ||
+                                    medication.quantidade.trim(),
+                                  );
+                                  if (
+                                    hasDetails &&
+                                    !window.confirm(
+                                      "Trocar o medicamento apagará a apresentação, a posologia e a quantidade preenchidas. Deseja continuar?",
+                                    )
+                                  ) {
+                                    return false;
+                                  }
+
+                                  setForm((previous) => ({
+                                    ...previous,
+                                    medicamentos: previous.medicamentos.map((item, itemIndex) => itemIndex === index
+                                      ? {
+                                        ...item,
+                                        nome: name,
+                                        apresentacao: presentation,
+                                        posologia: "",
+                                        quantidade: "",
+                                      }
+                                      : item),
+                                  }));
+                                  return true;
+                                }}
                               />
                               <Field
                                 label="Apresentação / concentração (ex.: 500 mg)"
